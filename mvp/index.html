@@ -2,27 +2,26 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>GH Treemap</title>
+<title>GH Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    background: #fff;
-    font-family: -apple-system, system-ui, sans-serif;
-    color: #333; padding: 24px; height: 100vh; display: flex; flex-direction: column;
+    background: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #333; height: 100vh; display: flex; flex-direction: column;
   }
-  #header { margin-bottom: 20px; flex-shrink: 0; }
-  #title { font-size: 22px; font-weight: 700; color: #111; letter-spacing: -0.02em; }
-  #subtitle { font-size: 14px; color: #666; margin-top: 4px; }
-  #status { font-size: 11px; color: #999; margin-top: 8px; font-variant-numeric: tabular-nums; }
-  
   #chart-wrap { flex: 1; min-height: 0; position: relative; }
   svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
-  .node rect { stroke: #fff; stroke-width: 2px; transition: opacity 0.2s; cursor: pointer; }
-  .node rect:hover { opacity: 0.7; }
+  .node rect, .node circle { stroke: #fff; stroke-width: 2px; transition: opacity 0.2s; cursor: pointer; }
+  .node rect:hover, .node circle:hover { opacity: 0.7; }
   .node text { pointer-events: none; }
   .parent-label { font-size: 11px; font-weight: bold; fill: #555; text-transform: uppercase; letter-spacing: 0.05em; }
+  .sankey-link { fill: none; stroke-opacity: 0.3; transition: stroke-opacity 0.2s; cursor: pointer;}
+  .sankey-link:hover { stroke-opacity: 0.6; }
 
   #tooltip {
     position: absolute; background: rgba(255,255,255,0.95); border: 1px solid #ddd;
@@ -35,156 +34,481 @@
 </head>
 <body>
 
-<div id="header">
-  <div id="title">Dashboard</div>
-  <div id="subtitle">loading...</div>
-  <div id="status"></div>
-</div>
-
 <div id="chart-wrap">
   <svg id="chart"></svg>
 </div>
 
 <script>
-// config and state
-const DATA_FILE = "mvp/gh_dashboard.json";
+const DATA_FILE = "gh_dashboard.json";
 const POLL_MS = 100;
 const UNIT = "m²";
 const color = d3.scaleOrdinal(d3.schemeTableau10);
-let lastUpdated = null;
 
+let lastUpdated = null;
 const svg = d3.select("#chart");
 const tooltip = d3.select("body").append("div").attr("id", "tooltip");
 
-// tooltip logic
 function showTT(e, name, val, group) {
-  let gText = (group && group !== "Total" && group !== name) ? `<div class="tt-val">group: ${group}</div>` : '';
+  let gText = (group && group !== "Total" && group !== name) ? `<div class="tt-val">Group: ${group}</div>` : '';
   tooltip.style("opacity", 1).html(`<div class="tt-name">${name}</div><div class="tt-val">${val.toFixed(1)} ${UNIT}</div>${gText}`);
   moveTT(e);
 }
 function moveTT(e) {
-  let x = e.pageX + 15, y = e.pageY - 15;
-  if (x + 150 > window.innerWidth) x = e.pageX - 165;
-  tooltip.style("left", x + "px").style("top", y + "px");
+  let left = e.pageX + 15, top = e.pageY - 15;
+  if (left + 150 > window.innerWidth) left = e.pageX - 150 - 15;
+  tooltip.style("left", left + "px").style("top", top + "px");
 }
 function hideTT() { tooltip.style("opacity", 0); }
 
-// fetch data periodically
 async function poll() {
   try {
     const res = await fetch(DATA_FILE + "?t=" + Date.now());
+    if (!res.ok) throw new Error("HTTP " + res.status);
     const json = await res.json();
 
     if (json.updated !== lastUpdated) {
       lastUpdated = json.updated;
-      document.getElementById("title").textContent = json.config.title;
-      document.getElementById("subtitle").textContent = json.config.subtitle;
-      document.getElementById("status").textContent = "live: " + new Date().toLocaleTimeString();
-      
       const wrap = document.getElementById("chart-wrap");
-      let W = wrap.clientWidth || 800;
-      let H = wrap.clientHeight || 600;
-      
-      drawTreemap(json, W, H); 
+      let W = wrap.clientWidth, H = wrap.clientHeight;
+      if (!W || !H || W < 100 || H < 100) { W = 800; H = 600; }
+
+      const type = json.config.type;
+      if      (type === "bar")    drawBarChart(json, W, H);
+      else if (type === "pack")   drawCirclePack(json, W, H);
+      else if (type === "pie")    drawDonut(json, W, H);
+      else if (type === "sankey") drawSankey(json, W, H);
+      else                        drawTreemap(json, W, H);
     }
   } catch(e) {}
 }
 
-// convert flat data to tree
 function buildHierarchy(data) {
   const hasParents = data.some(d => d.parent);
   if (!hasParents) return d3.hierarchy({ name: "Total", children: data }).sum(d => d.value).sort((a,b) => b.value - a.value);
-  
   const childNames = new Set(data.map(d => d.name));
   const missing = [...new Set(data.map(d => d.parent).filter(Boolean))].filter(p => !childNames.has(p));
-  const allNodes = [
-    { name: "Total", parent: null }, 
-    ...missing.map(p => ({ name: p, parent: "Total" })), 
-    ...data.map(d => ({ ...d, parent: d.parent || "Total" }))
-  ];
+  const allNodes = [{ name: "Total", parent: null }, ...missing.map(p => ({ name: p, parent: "Total" })), ...data.map(d => ({ ...d, parent: d.parent || "Total" }))];
   return d3.stratify().id(d => d.name).parentId(d => d.parent)(allNodes).sum(d => d.value).sort((a,b) => b.value - a.value);
 }
 
-// render treemap to svg
+// ════════════════════════════════════════════════════════════════════════════
 function drawTreemap(json, W, H) {
-  svg.selectAll("*").remove();
-  svg.attr("width", W).attr("height", H);
-  
+  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
   const root = buildHierarchy(json.data);
   d3.treemap().size([W, H]).paddingOuter(4).paddingTop(22).paddingInner(2).round(true)(root);
-  
-  // group headers
   const parents = svg.selectAll(".parent").data(root.children || []).enter().append("g");
   parents.append("text").attr("class", "parent-label").attr("x", d=>d.x0+4).attr("y", d=>d.y0+14).text(d=>d.data.name);
-  
-  // actual squares
+
   const nodes = svg.selectAll(".node").data(root.leaves()).enter().append("g").attr("class", "node").attr("transform", d=>`translate(${d.x0},${d.y0})`);
-  
-  nodes.append("rect")
-    .attr("width", d=>Math.max(0, d.x1-d.x0))
-    .attr("height", d=>Math.max(0, d.y1-d.y0))
-    .attr("rx", 3)
-    .attr("fill", d=>color(d.parent.data.name !== "Total" ? d.parent.data.name : d.data.name))
+  nodes.append("rect").attr("width", d=>Math.max(0, d.x1-d.x0)).attr("height", d=>Math.max(0, d.y1-d.y0)).attr("rx", 3)
+    .attr("fill", d=>color(d.parent.data.name!=="Total"?d.parent.data.name:d.data.name))
     .on("mouseover", (e, d) => showTT(e, d.data.name, d.value, d.parent ? d.parent.data.name : ""))
     .on("mousemove", moveTT).on("mouseout", hideTT);
 
-  // labels inside squares
   nodes.each(function(d){
     const w = d.x1-d.x0, h = d.y1-d.y0, el = d3.select(this);
-    if(w>45 && h>25) el.append("text").attr("x",8).attr("y",18).style("font-size","12px").style("font-weight","600").style("fill","#fff").text(d.data.name);
-    if(w>60 && h>40) el.append("text").attr("x",8).attr("y",34).style("font-size","10px").style("fill","rgba(255,255,255,0.8)").text(d.value.toFixed(1));
+    if(w>45&&h>25) el.append("text").attr("x",8).attr("y",18).style("font-size","12px").style("font-weight","600").style("fill","#fff").text(d.data.name);
+    if(w>60&&h>40) el.append("text").attr("x",8).attr("y",34).style("font-size","10px").style("fill","rgba(255,255,255,0.8)").text(d.value.toFixed(1));
   });
-
-  exportToCanvas(json.config, root, W, H);
+  exportCanvas(json.config, {root, W, H}, "treemap");
 }
 
-// screenshot logic for rhino
-function exportToCanvas(config, root, W, H) {
+// ════════════════════════════════════════════════════════════════════════════
+function drawCirclePack(json, W, H) {
+  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
+  const root = buildHierarchy(json.data);
+  d3.pack().size([W, H]).padding(4)(root);
+
+  let focus = root;
+  const g = svg.append("g");
+
+  const node = g.selectAll("g").data(root.descendants()).enter().append("g")
+    .attr("transform", d => `translate(${d.x},${d.y})`);
+
+  const circle = node.append("circle")
+    .attr("r", d => d.r)
+    .attr("fill", d => {
+      if (!d.parent) return "none";
+      if (d.children) return color(d.data.name) + "28";
+      return color(d.parent.data.name !== "Total" ? d.parent.data.name : d.data.name);
+    })
+    .attr("stroke", d => d.children ? color(d.data.name) : "#fff")
+    .attr("stroke-width", d => d.children ? 2 : 1.5)
+    .attr("stroke-opacity", d => d.children ? 0.6 : 1)
+    .style("cursor", d => d.parent && d.children ? "pointer" : "default")
+    .on("mouseover", function(e, d) {
+      if (!d.children && d.parent) {
+        d3.select(this).attr("opacity", 0.75);
+        showTT(e, d.data.name, d.value, d.parent.data.name !== "Total" ? d.parent.data.name : "");
+      }
+    })
+    .on("mousemove", moveTT)
+    .on("mouseout", function() { d3.select(this).attr("opacity", 1); hideTT(); })
+    .on("click", function(e, d) {
+      e.stopPropagation();
+      if (d.children && focus !== d) zoomTo(d);
+      else if (focus !== root) zoomTo(root);
+    });
+
+  const label = node.append("text")
+    .attr("text-anchor", "middle").attr("dy", "0.35em")
+    .style("fill", d => d.children ? color(d.data.name) : "#fff")
+    .style("font-weight", d => d.children ? "700" : "600")
+    .style("font-size", d => d.children ? "12px" : "11px")
+    .style("pointer-events", "none")
+    .text(d => d.data.name !== "Total" ? d.data.name : "")
+    .style("opacity", d => d.parent === root ? 1 : 0);
+
+  svg.on("click", () => { if (focus !== root) zoomTo(root); });
+
+  function zoomTo(v) {
+    focus = v;
+    const k = Math.min(W, H) / (v.r * 2.2);
+    const tx = W/2 - v.x * k, ty = H/2 - v.y * k;
+    g.transition().duration(500).ease(d3.easeCubicInOut)
+      .attr("transform", `translate(${tx},${ty}) scale(${k})`);
+    label.transition().duration(500)
+      .style("opacity", d => (!d.parent || (d.parent !== v && d !== v)) ? 0 : 1)
+      .style("font-size", d => `${(d.children ? 12 : 11) / k}px`);
+  }
+
+  exportCanvas(json.config, {root, W, H}, "pack");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+function drawBarChart(json, W, H) {
+  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
+
+  const hasParents = json.data.some(d => d.parent);
+  const margin = {top: 8, right: 80, bottom: 8, left: 160};
+  const w = W - margin.left - margin.right;
+
+  let rows = [];
+  if (hasParents) {
+    const groups = d3.group(json.data, d => d.parent || "Other");
+    [...groups.entries()]
+      .sort((a,b) => d3.sum(b[1], d=>d.value) - d3.sum(a[1], d=>d.value))
+      .forEach(([parent, children]) => {
+        rows.push({type:'group', name:parent, total: d3.sum(children, d=>d.value)});
+        children.sort((a,b)=>b.value-a.value).forEach(d => rows.push({type:'bar', ...d}));
+      });
+  } else {
+    json.data.sort((a,b)=>b.value-a.value).forEach(d => rows.push({type:'bar', ...d}));
+  }
+
+  const GROUP_H = 22, BAR_H = 26, BAR_PAD = 4;
+  let yPos = 0;
+  rows.forEach(r => { r._y = yPos; yPos += (r.type==='group' ? GROUP_H + 2 : BAR_H + BAR_PAD); });
+
+  const xMax = d3.max(rows.filter(r=>r.type==='bar'), d=>d.value);
+  const x = d3.scaleLinear().domain([0, xMax]).range([0, w]);
+  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+  rows.filter(r=>r.type==='group').forEach(r => {
+    g.append("text").attr("x", -margin.left+4).attr("y", r._y+14)
+      .style("font-size","11px").style("font-weight","700").style("fill", color(r.name))
+      .style("letter-spacing","0.06em").text(r.name.toUpperCase());
+    g.append("line").attr("x1",-margin.left+4).attr("x2",w).attr("y1",r._y+18).attr("y2",r._y+18)
+      .attr("stroke", color(r.name)).attr("stroke-width",1).attr("opacity",0.25);
+  });
+
+  const barData = rows.filter(r=>r.type==='bar');
+
+  g.selectAll(".bar").data(barData).enter().append("rect").attr("class","bar")
+    .attr("y", d=>d._y).attr("height", BAR_H).attr("x",0).attr("width",0).attr("rx",2)
+    .attr("fill", d=>color(d.parent||d.name))
+    .on("mouseover", function(e,d){ d3.select(this).transition().duration(100).attr("opacity",0.75); showTT(e,d.name,d.value,d.parent); })
+    .on("mousemove", moveTT)
+    .on("mouseout", function(){ d3.select(this).transition().duration(150).attr("opacity",1); hideTT(); })
+    .transition().duration(600).ease(d3.easeCubicOut).attr("width", d=>x(d.value));
+
+  g.selectAll(".label-name").data(barData).enter().append("text")
+    .attr("x",-10).attr("y", d=>d._y+BAR_H/2+4).attr("text-anchor","end")
+    .style("font-size","12px").style("font-weight","600").style("opacity",0).text(d=>d.name)
+    .transition().duration(600).style("opacity",1);
+
+  g.selectAll(".label-val").data(barData).enter().append("text")
+    .attr("x", d=>x(d.value)+8).attr("y", d=>d._y+BAR_H/2+4)
+    .style("font-size","11px").style("fill","#666").style("opacity",0).text(d=>d.value.toFixed(1))
+    .transition().duration(600).ease(d3.easeCubicOut).style("opacity",1);
+
+  exportCanvas(json.config, {rows, x, margin, BAR_H, GROUP_H, w, W, H}, "bar");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+function drawDonut(json, W, H) {
+  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
+  const cx = W/2, cy = H/2;
+  const outerR = Math.min(W, H) / 2 - 20;
+  const hasParents = json.data.some(d => d.parent);
+  const total = d3.sum(json.data, d => d.value);
+
+  const g = svg.append("g").attr("transform", `translate(${cx},${cy})`);
+
+  const centerName = g.append("text").attr("text-anchor","middle").attr("dy","-0.3em")
+    .style("font-size","14px").style("font-weight","700").style("fill","#111").text("Total");
+  const centerVal = g.append("text").attr("text-anchor","middle").attr("dy","1.1em")
+    .style("font-size","12px").style("fill","#666").text(total.toFixed(1) + " " + UNIT);
+  function resetCenter() { centerName.text("Total"); centerVal.text(total.toFixed(1) + " " + UNIT); }
+
+  if (hasParents) {
+    const innerR = outerR * 0.35, midR = outerR * 0.62;
+    const innerArc = d3.arc().innerRadius(innerR).outerRadius(midR - 3).cornerRadius(2).padAngle(0.025);
+    const outerArc = d3.arc().innerRadius(midR + 1).outerRadius(outerR).cornerRadius(2).padAngle(0.008);
+
+    const groups = d3.group(json.data, d => d.parent || "Other");
+    const groupList = [...groups.entries()]
+      .map(([name, ch]) => ({ name, value: d3.sum(ch, d=>d.value), children: ch.sort((a,b)=>b.value-a.value) }))
+      .sort((a,b) => b.value - a.value);
+
+    const innerPie = d3.pie().value(d=>d.value).sort(null).padAngle(0.025)(groupList);
+
+    // Inner ring (parents)
+    g.selectAll(".i-arc").data(innerPie).enter().append("path").attr("class","i-arc")
+      .attr("fill", d=>color(d.data.name)).attr("stroke","#fff").attr("stroke-width",2)
+      .style("cursor","pointer")
+      .on("mouseover", function(e,d) {
+        d3.select(this).transition().duration(100).attr("transform","scale(1.05)");
+        centerName.text(d.data.name); centerVal.text(d.data.value.toFixed(1)+" "+UNIT);
+        showTT(e, d.data.name, d.data.value, "");
+      })
+      .on("mousemove", moveTT)
+      .on("mouseout", function() { d3.select(this).transition().duration(150).attr("transform","scale(1)"); resetCenter(); hideTT(); })
+      .transition().duration(700).ease(d3.easeCubicOut)
+      .attrTween("d", d => { const i = d3.interpolate({startAngle:d.startAngle,endAngle:d.startAngle},d); return t=>innerArc(i(t)); });
+
+    // Inner ring labels
+    innerPie.forEach(s => {
+      if (s.endAngle - s.startAngle < 0.25) return;
+      const mid = (s.startAngle + s.endAngle) / 2;
+      const r = (innerR + midR - 3) / 2;
+      g.append("text")
+        .attr("transform", `translate(${Math.sin(mid)*r},${-Math.cos(mid)*r})`)
+        .attr("text-anchor","middle").attr("dy","0.35em")
+        .style("font-size","11px").style("font-weight","700").style("fill","#fff").style("pointer-events","none")
+        .text(s.data.name);
+    });
+
+    // Outer ring (children)
+    innerPie.forEach(pSlice => {
+      const children = pSlice.data.children;
+      const childPie = d3.pie().value(d=>d.value).sort(null)
+        .startAngle(pSlice.startAngle + 0.012).endAngle(pSlice.endAngle - 0.012).padAngle(0.006)(children);
+
+      g.selectAll(null).data(childPie).enter().append("path")
+        .attr("fill", color(pSlice.data.name))
+        .attr("opacity", (d,i) => 0.45 + (i / Math.max(children.length - 1, 1)) * 0.55)
+        .attr("stroke","#fff").attr("stroke-width",1)
+        .style("cursor","pointer")
+        .on("mouseover", function(e,d) {
+          d3.select(this).transition().duration(100).attr("transform","scale(1.04)");
+          centerName.text(d.data.name); centerVal.text(d.data.value.toFixed(1)+" "+UNIT);
+          showTT(e, d.data.name, d.data.value, pSlice.data.name);
+        })
+        .on("mousemove", moveTT)
+        .on("mouseout", function() { d3.select(this).transition().duration(150).attr("transform","scale(1)"); resetCenter(); hideTT(); })
+        .transition().duration(700).ease(d3.easeCubicOut)
+        .attrTween("d", d => { const i = d3.interpolate({startAngle:d.startAngle,endAngle:d.startAngle},d); return t=>outerArc(i(t)); });
+    });
+
+  } else {
+    const innerR = outerR * 0.45;
+    const arc = d3.arc().innerRadius(innerR).outerRadius(outerR).cornerRadius(2).padAngle(0.015);
+    const pie = d3.pie().value(d=>d.value).sort(null)(json.data.sort((a,b)=>b.value-a.value));
+
+    g.selectAll(".slice").data(pie).enter().append("path").attr("class","slice")
+      .attr("fill", d=>color(d.data.name)).attr("stroke","#fff").attr("stroke-width",2)
+      .style("cursor","pointer")
+      .on("mouseover", function(e,d) {
+        d3.select(this).transition().duration(100).attr("transform","scale(1.05)");
+        centerName.text(d.data.name); centerVal.text(d.data.value.toFixed(1)+" "+UNIT);
+        showTT(e, d.data.name, d.data.value, "");
+      })
+      .on("mousemove", moveTT)
+      .on("mouseout", function() { d3.select(this).transition().duration(150).attr("transform","scale(1)"); resetCenter(); hideTT(); })
+      .transition().duration(700).ease(d3.easeCubicOut)
+      .attrTween("d", d => { const i = d3.interpolate({startAngle:0,endAngle:0},d); return t=>arc(i(t)); });
+  }
+
+  exportCanvas(json.config, {json, W, H, outerR, hasParents}, "pie");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+function drawSankey(json, W, H) {
+  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
+  const nodeByName = new Map();
+  const nodes = [], links = [];
+  json.data.forEach(d => {
+    if(!d.value) return;
+    const pName = (d.parent || "Total") + " ";
+    if (!nodeByName.has(pName)) { nodeByName.set(pName, {name: pName}); nodes.push(nodeByName.get(pName)); }
+    if (!nodeByName.has(d.name)) { nodeByName.set(d.name, {name: d.name}); nodes.push(nodeByName.get(d.name)); }
+    links.push({ source: nodeByName.get(pName), target: nodeByName.get(d.name), value: d.value });
+  });
+
+  const sankey = d3.sankey().nodeWidth(15).nodePadding(15).extent([[10, 10],[W - 140, H - 20]]);
+  const {nodes: sNodes, links: sLinks} = sankey({nodes, links});
+
+  const g = svg.append("g");
+  g.selectAll(".link").data(sLinks).enter().append("path").attr("class", "sankey-link")
+    .attr("d", d3.sankeyLinkHorizontal()).attr("stroke-width", d => Math.max(1, d.width))
+    .attr("stroke", d => color(d.source.name)).attr("fill", "none")
+    .on("mouseover", (e, d) => showTT(e, d.source.name.trim() + " → " + d.target.name.trim(), d.value, ""))
+    .on("mousemove", moveTT).on("mouseout", hideTT);
+
+  const node = g.selectAll(".node").data(sNodes).enter().append("g").attr("class", "node");
+  node.append("rect").attr("x", d=>d.x0).attr("y", d=>d.y0).attr("height", d=>d.y1-d.y0).attr("width", sankey.nodeWidth())
+    .attr("fill", d=>color(d.name.trim())).attr("stroke","#fff")
+    .on("mouseover", (e,d) => showTT(e, d.name.trim(), d.value, ""))
+    .on("mousemove", moveTT).on("mouseout", hideTT);
+
+  node.append("text").attr("x", d=>d.x0<W/2?d.x1+6:d.x0-6).attr("y", d=>(d.y1+d.y0)/2).attr("dy","0.35em")
+    .attr("text-anchor", d=>d.x0<W/2?"start":"end")
+    .style("font-size","12px").style("font-weight","bold").text(d=>d.name.trim());
+
+  exportCanvas(json.config, {sNodes, sLinks, W, H}, "sankey");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  UNIVERSAL RHINO EXPORT
+// ════════════════════════════════════════════════════════════════════════════
+function exportCanvas(config, layout, type) {
   const exportW = config.w || 500;
-  const scale = exportW / W;
-  const headH = 70 * scale, pad = 20 * scale;
-  const vpH = Math.round(H * scale) + headH + pad;
-  
+  const scale = exportW / Math.max(layout.W, 1);
+  const fs = config.font_scale || 1.0;
+
+  const PADDING = 4 * scale;
+  const vpH = Math.round(layout.H * scale) + PADDING;
+
   const canvas = document.createElement('canvas');
   canvas.width = exportW; canvas.height = vpH;
   const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, exportW, vpH);
 
-  // background and titles
-  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,exportW,vpH);
-  ctx.fillStyle = '#111'; ctx.font = `bold ${18*scale}px sans-serif`; ctx.fillText(config.title, 15*scale, 25*scale);
-  ctx.fillStyle = '#666'; ctx.font = `${13*scale}px sans-serif`; ctx.fillText(config.subtitle, 15*scale, 45*scale);
+  const drawW = exportW - PADDING;
+  const drawH = vpH - PADDING;
+  ctx.translate(PADDING / 2, PADDING / 2);
 
-  // shift for chart area
-  ctx.translate(pad/2, headH + pad/2);
-  const drawW = exportW - pad, drawH = vpH - headH - pad;
-  
-  // re-run layout for canvas size
-  d3.treemap().size([drawW, drawH]).paddingOuter(4*scale).paddingTop(22*scale).paddingInner(2*scale).round(true)(root);
+  if (type === "treemap") {
+    d3.treemap().size([drawW, drawH]).paddingOuter(4*scale).paddingTop(22*scale).paddingInner(2*scale).round(true)(layout.root);
+    (layout.root.children||[]).forEach(d => { ctx.fillStyle='#555'; ctx.font=`bold ${11*fs}px sans-serif`; ctx.fillText(d.data.name.toUpperCase(), d.x0+4*scale, d.y0+14*scale); });
+    layout.root.leaves().forEach(d => {
+      const w=d.x1-d.x0, h=d.y1-d.y0; if(w<=0||h<=0) return;
+      ctx.fillStyle=color(d.parent.data.name!=="Total"?d.parent.data.name:d.data.name);
+      ctx.beginPath(); ctx.roundRect(d.x0,d.y0,w,h,3*scale); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=2*scale; ctx.stroke();
+      if(w>45*scale&&h>25*scale){ ctx.fillStyle='#fff'; ctx.font=`bold ${12*fs}px sans-serif`; ctx.fillText(d.data.name, d.x0+6*scale, d.y0+16*scale); }
+      if(w>60*scale&&h>40*scale){ ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font=`${10*fs}px sans-serif`; ctx.fillText(d.data.value.toFixed(1), d.x0+6*scale, d.y0+32*scale); }
+    });
+  }
+  else if (type === "pack") {
+    d3.pack().size([drawW, drawH]).padding(3*scale)(layout.root);
+    layout.root.descendants().slice(1).forEach(d => {
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
+      ctx.fillStyle = d.children ? "rgba(235,235,235,0.7)" : color(d.parent.data.name!=="Total"?d.parent.data.name:d.data.name);
+      ctx.fill(); ctx.strokeStyle = d.children ? "#ddd" : "#fff"; ctx.lineWidth = 2*scale; ctx.stroke();
+      if(!d.children && d.r>25*scale){
+        ctx.fillStyle='#fff'; ctx.font=`bold ${12*fs}px sans-serif`; ctx.textAlign="center"; ctx.fillText(d.data.name, d.x, d.y-4*scale);
+        if(d.r>35*scale){ ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font=`${10*fs}px sans-serif`; ctx.fillText(d.data.value.toFixed(0), d.x, d.y+12*scale); }
+      }
+    });
+    ctx.textAlign="left";
+  }
+  else if (type === "bar") {
+    ctx.translate(layout.margin.left*scale, layout.margin.top*scale);
+    layout.rows.forEach(r => {
+      if (r.type === 'group') {
+        ctx.fillStyle=color(r.name); ctx.font=`bold ${11*fs}px sans-serif`; ctx.textAlign='left';
+        ctx.fillText(r.name.toUpperCase(), -layout.margin.left*scale+4*scale, r._y*scale+14*scale);
+      } else {
+        const bw=layout.x(r.value)*scale, bh=layout.BAR_H*scale, by=r._y*scale;
+        ctx.fillStyle=color(r.parent||r.name); ctx.beginPath(); ctx.roundRect(0,by,bw,bh,2*scale); ctx.fill();
+        ctx.fillStyle='#111'; ctx.font=`bold ${12*fs}px sans-serif`; ctx.textAlign='right'; ctx.fillText(r.name, -10*scale, by+bh/2+4*scale);
+        ctx.fillStyle='#666'; ctx.font=`${11*fs}px sans-serif`; ctx.textAlign='left'; ctx.fillText(r.value.toFixed(1), bw+8*scale, by+bh/2+4*scale);
+      }
+    });
+  }
+  else if (type === "pie") {
+    const cx = drawW/2, cy = drawH/2;
+    const outerR = Math.min(drawW, drawH)/2 - 10*scale;
+    const total = d3.sum(layout.json.data, d=>d.value);
+    ctx.save();
+    ctx.translate(cx, cy);
 
-  // draw groups
-  root.children?.forEach(d => { 
-    ctx.fillStyle = '#555'; ctx.font = `bold ${11*scale}px sans-serif`; 
-    ctx.fillText(d.data.name.toUpperCase(), d.x0+4*scale, d.y0+14*scale); 
-  });
+    if (layout.hasParents) {
+      const innerR = outerR*0.35, midR = outerR*0.62;
+      const groups = d3.group(layout.json.data, d=>d.parent||"Other");
+      const groupList = [...groups.entries()]
+        .map(([name,ch])=>({name, value:d3.sum(ch,d=>d.value), children:ch.sort((a,b)=>b.value-a.value)}))
+        .sort((a,b)=>b.value-a.value);
+      const innerPie = d3.pie().value(d=>d.value).sort(null).padAngle(0.025)(groupList);
 
-  // draw leaves
-  root.leaves().forEach(d => {
-    const w = d.x1-d.x0, h = d.y1-d.y0;
-    ctx.fillStyle = color(d.parent.data.name !== "Total" ? d.parent.data.name : d.data.name);
-    ctx.beginPath(); ctx.roundRect(d.x0, d.y0, w, h, 3*scale); ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2*scale; ctx.stroke();
-    
-    if(w > 45*scale && h > 25*scale) {
-      ctx.fillStyle = '#fff'; ctx.font = `bold ${12*scale}px sans-serif`; 
-      ctx.fillText(d.data.name, d.x0+6*scale, d.y0+16*scale);
+      // Inner arcs (parents)
+      innerPie.forEach(s => {
+        const sa = s.startAngle - Math.PI/2, ea = s.endAngle - Math.PI/2;
+        ctx.beginPath(); ctx.arc(0,0,midR-3,sa,ea); ctx.arc(0,0,innerR,ea,sa,true); ctx.closePath();
+        ctx.fillStyle = color(s.data.name); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2*scale; ctx.stroke();
+        // Label
+        if (s.endAngle - s.startAngle > 0.25) {
+          const mid = (s.startAngle+s.endAngle)/2, r = (innerR+midR-3)/2;
+          ctx.fillStyle='#fff'; ctx.font=`bold ${11*fs}px sans-serif`; ctx.textAlign='center';
+          ctx.fillText(s.data.name, Math.sin(mid)*r, -Math.cos(mid)*r+4*scale);
+        }
+      });
+      // Outer arcs (children)
+      innerPie.forEach(pSlice => {
+        const children = pSlice.data.children;
+        const childPie = d3.pie().value(d=>d.value).sort(null)
+          .startAngle(pSlice.startAngle+0.012).endAngle(pSlice.endAngle-0.012).padAngle(0.006)(children);
+        childPie.forEach((s,i) => {
+          const sa = s.startAngle-Math.PI/2, ea = s.endAngle-Math.PI/2;
+          const opacity = 0.45 + (i/Math.max(children.length-1,1))*0.55;
+          ctx.globalAlpha = opacity;
+          ctx.beginPath(); ctx.arc(0,0,outerR,sa,ea); ctx.arc(0,0,midR+1,ea,sa,true); ctx.closePath();
+          ctx.fillStyle = color(pSlice.data.name); ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle='#fff'; ctx.lineWidth=scale; ctx.stroke();
+        });
+      });
+    } else {
+      const innerR = outerR*0.45;
+      const pie = d3.pie().value(d=>d.value).sort(null)(layout.json.data.sort((a,b)=>b.value-a.value));
+      pie.forEach(s => {
+        const sa = s.startAngle-Math.PI/2, ea = s.endAngle-Math.PI/2;
+        ctx.beginPath(); ctx.arc(0,0,outerR,sa,ea); ctx.arc(0,0,innerR,ea,sa,true); ctx.closePath();
+        ctx.fillStyle = color(s.data.name); ctx.fill();
+        ctx.strokeStyle='#fff'; ctx.lineWidth=2*scale; ctx.stroke();
+      });
     }
-  });
+    // Center text
+    ctx.fillStyle='#111'; ctx.font=`bold ${14*fs}px sans-serif`; ctx.textAlign='center';
+    ctx.fillText("Total", 0, -4*scale);
+    ctx.fillStyle='#666'; ctx.font=`${12*fs}px sans-serif`;
+    ctx.fillText(total.toFixed(1)+" "+UNIT, 0, 16*scale);
+    ctx.restore();
+  }
+  else if (type === "sankey") {
+    ctx.save();
+    ctx.scale(scale, scale);
+    layout.sLinks.forEach(l => {
+      ctx.beginPath(); d3.sankeyLinkHorizontal().context(ctx)(l);
+      ctx.strokeStyle=color(l.source.name); ctx.globalAlpha=0.35;
+      ctx.lineWidth=Math.max(1,l.width); ctx.stroke();
+    });
+    ctx.globalAlpha=1.0;
+    layout.sNodes.forEach(n => {
+      ctx.fillStyle=color(n.name.trim());
+      ctx.fillRect(n.x0,n.y0,n.x1-n.x0,n.y1-n.y0);
+      ctx.fillStyle="#111"; ctx.font=`bold ${12*fs/scale}px sans-serif`;
+      if(n.x0<layout.W/2){ ctx.textAlign="start"; ctx.fillText(n.name.trim(),n.x1+6,(n.y0+n.y1)/2+4); }
+      else { ctx.textAlign="end"; ctx.fillText(n.name.trim(),n.x0-6,(n.y0+n.y1)/2+4); }
+    });
+    ctx.restore();
+  }
 
-  // send to rhino server
-  canvas.toBlob(b => fetch('/screenshot', { method: 'POST', body: b }).catch(()=>{}));
+  canvas.toBlob(blob => fetch('/screenshot', { method: 'POST', body: blob }).catch(()=>{}));
 }
 
-// start polling
 poll();
 setInterval(poll, POLL_MS);
 </script>

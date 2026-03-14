@@ -1,15 +1,16 @@
 {
-  "updated": "2026-03-14 16:43:52",
+  "updated": "2026-03-14 21:37:09",
   "config": {
     "type": "treemap",
     "title": "Grasshopper Dashboard",
     "subtitle": "Live Data Feed",
-    "w": 793
+    "w": 529,
+    "font_scale": 1.0
   },
   "data": [
     {
       "name": "A",
-      "value": 102526.69340307225,
+      "value": 229740.310061926,
       "parent": "Residential"
     },
     {
@@ -19,7 +20,7 @@
     },
     {
       "name": "C",
-      "value": 104140.07670573267,
+      "value": 223045.64490936673,
       "parent": "Industrial"
     },
     {
@@ -39,7 +40,7 @@
     },
     {
       "name": "G",
-      "value": 170536.5756425672,
+      "value": 368110.7277781606,
       "parent": "Residential"
     },
     {
@@ -49,7 +50,7 @@
     },
     {
       "name": "I",
-      "value": 367680.5923639412,
+      "value": 637650.4932854017,
       "parent": "Industrial"
     },
     {

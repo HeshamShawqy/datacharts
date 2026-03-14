@@ -24,7 +24,6 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 
 SERVE_DIR   = r"D:\00_HS\GSS24\code\New folder\datacharts\mvp"
 OUTPUT_JSON = os.path.join(SERVE_DIR, "gh_dashboard.json")
-OUTPUT_JSON = os.path.join(SERVE_DIR)
 PORT        = 8080
 URL         = "http://localhost:{}".format(PORT)
 
@@ -37,6 +36,7 @@ try:
     _chart_type = str(globals().get("chart_type") or "treemap").lower()
     _title      = str(globals().get("title") or "Grasshopper Dashboard")
     _subtitle   = str(globals().get("subtitle") or "Live Data Feed")
+    _font_scale = float(globals().get("font_scale") or 1.0)
     _enable     = globals().get("enable",  True)
     _x          = int(globals().get("x") or 20)
     _y          = int(globals().get("y") or 60)
@@ -47,8 +47,7 @@ try:
     sc.sticky["GH_VP_Y"]       = _y
     sc.sticky["GH_VP_W"]       = _w
 
-    # firing up server and showing web view / Eto viewer
-    # sticky is used to rerun the entire python script every time a slider moves
+    # firing up the server
     if "GH_VP_STARTED" not in sc.sticky:
         class _H(SimpleHTTPRequestHandler):
             def __init__(self, *a, **kw):
@@ -68,7 +67,6 @@ try:
                 super().end_headers()
             def log_message(self, *a): pass
 
-        # listening for requests on a separate thread to avoid crashes
         threading.Thread(target=lambda: HTTPServer(("", PORT), _H).serve_forever(), daemon=True).start()
 
         import Eto.Forms as ef, Eto.Drawing as ed
@@ -83,7 +81,7 @@ try:
         sc.sticky["GH_VP_STARTED"] = True
         sc.sticky["GH_VP_FORM"]    = _form
 
-    # safe guarding for fetching the iamge from the browser
+    # safe guard bitmap updates
     if "GH_VP_IDLE" not in sc.sticky:
         def _idle(sender, e):
             if sc.sticky.get("GH_VP_NEEDS_REDRAW"):
@@ -93,7 +91,7 @@ try:
                     try:
                         ms  = System.IO.MemoryStream(System.Array[System.Byte](data))
                         raw = sd.Bitmap(ms)
-                
+                        
                         old_bmp = sc.sticky.get("GH_VP_BMP")
                         if old_bmp:
                             try: old_bmp.Dispose()
@@ -110,6 +108,7 @@ try:
         Rhino.RhinoApp.Idle += _idle
         sc.sticky["GH_VP_IDLE"] = _idle
 
+    # handler
     if "GH_VP_CH" in sc.sticky:
         try:    rd.DisplayPipeline.DrawForeground -= sc.sticky["GH_VP_CH"]
         except: pass
@@ -126,7 +125,7 @@ try:
     rd.DisplayPipeline.DrawForeground += _draw
     sc.sticky["GH_VP_CH"] = _draw
 
-    # time stamping json file data
+    #json making
     if _names and _values and len(_names) == len(_values):
         _parents = (_parents + [""] * len(_names))[:len(_names)]
         rows =[{"name": str(n), "value": float(v), **({"parent": str(p)} if p else {})}
@@ -138,7 +137,8 @@ try:
                 "type": _chart_type,
                 "title": _title,
                 "subtitle": _subtitle,
-                "w": _w  
+                "w": _w,
+                "font_scale": _font_scale
             },
             "data": rows
         }
