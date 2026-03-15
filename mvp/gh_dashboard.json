@@ -1,87 +1,257 @@
 {
-  "updated": "2026-03-14 21:37:09",
+  "updated": "2026-03-15 01:09:55",
   "config": {
     "type": "treemap",
     "title": "Grasshopper Dashboard",
     "subtitle": "Live Data Feed",
-    "w": 529,
+    "w": 694,
     "font_scale": 1.0
   },
   "data": [
     {
-      "name": "A",
-      "value": 229740.310061926,
-      "parent": "Residential"
+      "name": "0.0",
+      "value": 1384.0,
+      "parent": "Retail"
     },
     {
-      "name": "B",
-      "value": 21586.666003523096,
-      "parent": "Commercial"
+      "name": "1.0",
+      "value": 1380.0,
+      "parent": "Retail"
     },
     {
-      "name": "C",
-      "value": 223045.64490936673,
-      "parent": "Industrial"
+      "name": "2.0",
+      "value": 1423.0,
+      "parent": "Retail"
     },
     {
-      "name": "D",
-      "value": 209030.12626746233,
-      "parent": "Residential"
+      "name": "3.0",
+      "value": 1513.0,
+      "parent": "Retail"
     },
     {
-      "name": "E",
-      "value": 8777.631451937199,
-      "parent": "Commercial"
+      "name": "4.0",
+      "value": 1650.0,
+      "parent": "Retail"
     },
     {
-      "name": "F",
-      "value": 25675.54952222466,
-      "parent": "Industrial"
+      "name": "5.0",
+      "value": 1833.0,
+      "parent": "Retail"
     },
     {
-      "name": "G",
-      "value": 368110.7277781606,
-      "parent": "Residential"
+      "name": "6.0",
+      "value": 2064.0,
+      "parent": "Retail"
     },
     {
-      "name": "H",
-      "value": 15936.284787619055,
-      "parent": "Commercial"
+      "name": "7.0",
+      "value": 2341.0,
+      "parent": "Retail"
     },
     {
-      "name": "I",
-      "value": 637650.4932854017,
-      "parent": "Industrial"
+      "name": "8.0",
+      "value": 2665.0,
+      "parent": "Retail"
     },
     {
-      "name": "J",
-      "value": 2871.8369873140073,
-      "parent": "Residential"
+      "name": "9.0",
+      "value": 3035.0,
+      "parent": "Retail"
     },
     {
-      "name": "K",
-      "value": 8400.443011453157,
-      "parent": "Commercial"
+      "name": "10.0",
+      "value": 3453.0,
+      "parent": "Retail"
     },
     {
-      "name": "L",
-      "value": 3303.3512930802563,
-      "parent": "Industrial"
+      "name": "11.0",
+      "value": 3917.0,
+      "parent": "Retail"
     },
     {
-      "name": "M",
-      "value": 1053961.599947311,
-      "parent": "Residential"
+      "name": "12.0",
+      "value": 3944.0,
+      "parent": "Office"
     },
     {
-      "name": "N",
-      "value": 153284.13847461654,
-      "parent": "Commercial"
+      "name": "13.0",
+      "value": 3786.0,
+      "parent": "Office"
     },
     {
-      "name": "O",
-      "value": 796498.7300626063,
-      "parent": "Industrial"
+      "name": "14.0",
+      "value": 3632.0,
+      "parent": "Office"
+    },
+    {
+      "name": "15.0",
+      "value": 3483.0,
+      "parent": "Office"
+    },
+    {
+      "name": "16.0",
+      "value": 3338.0,
+      "parent": "Office"
+    },
+    {
+      "name": "17.0",
+      "value": 3196.0,
+      "parent": "Office"
+    },
+    {
+      "name": "18.0",
+      "value": 3059.0,
+      "parent": "Office"
+    },
+    {
+      "name": "19.0",
+      "value": 2926.0,
+      "parent": "Office"
+    },
+    {
+      "name": "20.0",
+      "value": 2797.0,
+      "parent": "Office"
+    },
+    {
+      "name": "21.0",
+      "value": 2673.0,
+      "parent": "Office"
+    },
+    {
+      "name": "22.0",
+      "value": 2552.0,
+      "parent": "Office"
+    },
+    {
+      "name": "23.0",
+      "value": 2436.0,
+      "parent": "Office"
+    },
+    {
+      "name": "24.0",
+      "value": 2323.0,
+      "parent": "Office"
+    },
+    {
+      "name": "25.0",
+      "value": 2215.0,
+      "parent": "Office"
+    },
+    {
+      "name": "26.0",
+      "value": 2111.0,
+      "parent": "Office"
+    },
+    {
+      "name": "27.0",
+      "value": 2011.0,
+      "parent": "Office"
+    },
+    {
+      "name": "28.0",
+      "value": 1915.0,
+      "parent": "Office"
+    },
+    {
+      "name": "29.0",
+      "value": 1824.0,
+      "parent": "Office"
+    },
+    {
+      "name": "30.0",
+      "value": 1736.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "31.0",
+      "value": 1653.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "32.0",
+      "value": 1573.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "33.0",
+      "value": 1498.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "34.0",
+      "value": 1427.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "35.0",
+      "value": 1360.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "36.0",
+      "value": 1297.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "37.0",
+      "value": 1238.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "38.0",
+      "value": 1184.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "39.0",
+      "value": 1133.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "40.0",
+      "value": 1087.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "41.0",
+      "value": 1045.0,
+      "parent": "Hospitality"
+    },
+    {
+      "name": "42.0",
+      "value": 1006.0,
+      "parent": "Hotel"
+    },
+    {
+      "name": "43.0",
+      "value": 972.0,
+      "parent": "Hotel"
+    },
+    {
+      "name": "44.0",
+      "value": 943.0,
+      "parent": "Hotel"
+    },
+    {
+      "name": "45.0",
+      "value": 917.0,
+      "parent": "Hotel"
+    },
+    {
+      "name": "46.0",
+      "value": 895.0,
+      "parent": "Hotel"
+    },
+    {
+      "name": "47.0",
+      "value": 878.0,
+      "parent": "Hotel"
+    },
+    {
+      "name": "48.0",
+      "value": 864.0,
+      "parent": "Hotel"
     }
   ]
 }

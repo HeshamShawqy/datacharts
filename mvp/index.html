@@ -73,11 +73,12 @@ async function poll() {
       if (!W || !H || W < 100 || H < 100) { W = 800; H = 600; }
 
       const type = json.config.type;
-      if      (type === "bar")    drawBarChart(json, W, H);
-      else if (type === "pack")   drawCirclePack(json, W, H);
-      else if (type === "pie")    drawDonut(json, W, H);
-      else if (type === "sankey") drawSankey(json, W, H);
-      else                        drawTreemap(json, W, H);
+      if      (type === "bar")      drawBarChart(json, W, H);
+      else if (type === "pack")     drawCirclePack(json, W, H);
+      else if (type === "pie")      drawDonut(json, W, H);
+      else if (type === "sankey")   drawSankey(json, W, H);
+      else if (type === "sunburst") drawSunburst(json, W, H);
+      else                          drawTreemap(json, W, H);
     }
   } catch(e) {}
 }
@@ -122,11 +123,10 @@ function drawCirclePack(json, W, H) {
   let focus = root;
   const g = svg.append("g");
 
-  const node = g.selectAll("g").data(root.descendants()).enter().append("g")
-    .attr("transform", d => `translate(${d.x},${d.y})`);
-
-  const circle = node.append("circle")
-    .attr("r", d => d.r)
+  // Pass 1 — ALL circles (so labels render on top in SVG z-order)
+  const circle = g.selectAll("circle")
+    .data(root.descendants()).enter().append("circle")
+    .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => d.r)
     .attr("fill", d => {
       if (!d.parent) return "none";
       if (d.children) return color(d.data.name) + "28";
@@ -150,7 +150,10 @@ function drawCirclePack(json, W, H) {
       else if (focus !== root) zoomTo(root);
     });
 
-  const label = node.append("text")
+  // Pass 2 — ALL labels after all circles (always on top)
+  const label = g.selectAll("text")
+    .data(root.descendants()).enter().append("text")
+    .attr("x", d => d.x).attr("y", d => d.y)
     .attr("text-anchor", "middle").attr("dy", "0.35em")
     .style("fill", d => d.children ? color(d.data.name) : "#fff")
     .style("font-weight", d => d.children ? "700" : "600")
@@ -277,16 +280,18 @@ function drawDonut(json, W, H) {
       .transition().duration(700).ease(d3.easeCubicOut)
       .attrTween("d", d => { const i = d3.interpolate({startAngle:d.startAngle,endAngle:d.startAngle},d); return t=>innerArc(i(t)); });
 
-    // Inner ring labels
+    // Inner ring labels (name + value)
     innerPie.forEach(s => {
-      if (s.endAngle - s.startAngle < 0.25) return;
+      if (s.endAngle - s.startAngle < 0.18) return;
       const mid = (s.startAngle + s.endAngle) / 2;
       const r = (innerR + midR - 3) / 2;
-      g.append("text")
+      const t = g.append("text")
         .attr("transform", `translate(${Math.sin(mid)*r},${-Math.cos(mid)*r})`)
-        .attr("text-anchor","middle").attr("dy","0.35em")
-        .style("font-size","11px").style("font-weight","700").style("fill","#fff").style("pointer-events","none")
-        .text(s.data.name);
+        .attr("text-anchor","middle").style("pointer-events","none");
+      t.append("tspan").attr("x",0).attr("dy","-0.5em")
+        .style("font-size","11px").style("font-weight","700").style("fill","#fff").text(s.data.name);
+      t.append("tspan").attr("x",0).attr("dy","1.3em")
+        .style("font-size","10px").style("fill","rgba(255,255,255,0.85)").text(s.data.value.toFixed(1)+" "+UNIT);
     });
 
     // Outer ring (children)
@@ -309,6 +314,22 @@ function drawDonut(json, W, H) {
         .on("mouseout", function() { d3.select(this).transition().duration(150).attr("transform","scale(1)"); resetCenter(); hideTT(); })
         .transition().duration(700).ease(d3.easeCubicOut)
         .attrTween("d", d => { const i = d3.interpolate({startAngle:d.startAngle,endAngle:d.startAngle},d); return t=>outerArc(i(t)); });
+
+      // Outer ring labels
+      childPie.forEach(s => {
+        if (s.endAngle - s.startAngle < 0.15) return;
+        const mid = (s.startAngle + s.endAngle) / 2;
+        const r = (midR + 1 + outerR) / 2;
+        const t = g.append("text")
+          .attr("transform", `translate(${Math.sin(mid)*r},${-Math.cos(mid)*r})`)
+          .attr("text-anchor","middle").style("pointer-events","none");
+        t.append("tspan").attr("x",0).attr("dy", s.endAngle - s.startAngle > 0.3 ? "-0.4em" : "0.35em")
+          .style("font-size","10px").style("font-weight","700").style("fill","#fff").text(s.data.name);
+        if (s.endAngle - s.startAngle > 0.3) {
+          t.append("tspan").attr("x",0).attr("dy","1.3em")
+            .style("font-size","9px").style("fill","rgba(255,255,255,0.85)").text(s.data.value.toFixed(1)+" "+UNIT);
+        }
+      });
     });
 
   } else {
@@ -328,9 +349,120 @@ function drawDonut(json, W, H) {
       .on("mouseout", function() { d3.select(this).transition().duration(150).attr("transform","scale(1)"); resetCenter(); hideTT(); })
       .transition().duration(700).ease(d3.easeCubicOut)
       .attrTween("d", d => { const i = d3.interpolate({startAngle:0,endAngle:0},d); return t=>arc(i(t)); });
+
+    // Labels on simple pie
+    pie.forEach(s => {
+      if (s.endAngle - s.startAngle < 0.18) return;
+      const mid = (s.startAngle + s.endAngle) / 2;
+      const r = (innerR + outerR) / 2;
+      const t = g.append("text")
+        .attr("transform", `translate(${Math.sin(mid)*r},${-Math.cos(mid)*r})`)
+        .attr("text-anchor","middle").style("pointer-events","none");
+      t.append("tspan").attr("x",0).attr("dy", s.endAngle - s.startAngle > 0.32 ? "-0.4em" : "0.35em")
+        .style("font-size","11px").style("font-weight","700").style("fill","#fff").text(s.data.name);
+      if (s.endAngle - s.startAngle > 0.32) {
+        t.append("tspan").attr("x",0).attr("dy","1.3em")
+          .style("font-size","10px").style("fill","rgba(255,255,255,0.85)").text(s.data.value.toFixed(1)+" "+UNIT);
+      }
+    });
   }
 
   exportCanvas(json.config, {json, W, H, outerR, hasParents}, "pie");
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+function drawSunburst(json, W, H) {
+  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
+  const root = buildHierarchy(json.data);
+  d3.partition().size([2 * Math.PI, root.height + 1])(root);
+  root.each(d => d.current = d);
+
+  const maxR = Math.min(W, H) / 2 - 10;
+  const radius = maxR / (root.height + 1);
+
+  const arc = d3.arc()
+    .startAngle(d => d.x0)
+    .endAngle(d => d.x1)
+    .padAngle(d => Math.min((d.x1 - d.x0) / 2, 0.005))
+    .padRadius(radius * 1.5)
+    .innerRadius(d => Math.max(0, d.y0) * radius)
+    .outerRadius(d => Math.max(d.y0 * radius, d.y1 * radius - 1));
+
+  const g = svg.append("g").attr("transform", `translate(${W/2},${H/2})`);
+
+  const path = g.selectAll("path")
+    .data(root.descendants().filter(d => d.depth))
+    .join("path")
+    .attr("fill", d => { let a = d; while (a.depth > 1) a = a.parent; return color(a.data.name); })
+    .attr("fill-opacity", d => arcVisible(d.current) ? (d.children ? 0.6 : 0.9) : 0)
+    .attr("d", d => arc(d.current))
+    .style("cursor", d => d.children ? "pointer" : "default")
+    .on("mouseover", (e, d) => showTT(e, d.data.name, d.value, d.parent?.data.name !== "Total" ? d.parent?.data.name : ""))
+    .on("mousemove", moveTT)
+    .on("mouseout", hideTT)
+    .on("click", clicked);
+
+  const label = g.selectAll("text")
+    .data(root.descendants().filter(d => d.depth))
+    .join("text")
+    .attr("fill-opacity", d => +labelVisible(d.current))
+    .attr("transform", d => labelTransform(d.current))
+    .style("fill", "#fff").style("pointer-events", "none").style("text-anchor", "middle");
+
+  label.append("tspan")
+    .attr("x", 0).attr("dy", "-0.3em")
+    .style("font-size", "11px").style("font-weight", "700")
+    .text(d => d.data.name);
+
+  label.append("tspan")
+    .attr("x", 0).attr("dy", "1.3em")
+    .style("font-size", "10px").style("font-weight", "400")
+    .style("fill", "rgba(255,255,255,0.85)")
+    .text(d => d.value.toFixed(1) + " " + UNIT);
+
+  // Center — click to zoom out
+  const center = g.append("circle").attr("r", radius)
+    .attr("fill", "none").attr("pointer-events", "all").style("cursor", "pointer")
+    .on("click", () => clicked(null, root));
+
+  const centerText = g.append("text").attr("text-anchor", "middle").attr("dy", "-0.4em")
+    .style("font-size", "13px").style("font-weight", "700").style("fill", "#333").style("pointer-events","none")
+    .text("Total");
+
+  const centerVal = g.append("text").attr("text-anchor", "middle").attr("dy", "1em")
+    .style("font-size", "11px").style("fill", "#666").style("pointer-events","none")
+    .text(root.value.toFixed(1) + " " + UNIT);
+
+  function clicked(event, p) {
+    root.each(d => d.target = {
+      x0: Math.max(0, Math.min(1, (d.x0 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
+      x1: Math.max(0, Math.min(1, (d.x1 - p.x0) / (p.x1 - p.x0))) * 2 * Math.PI,
+      y0: Math.max(0, d.y0 - p.depth),
+      y1: Math.max(0, d.y1 - p.depth)
+    });
+    const t = g.transition().duration(600).ease(d3.easeCubicInOut);
+    path.transition(t)
+      .tween("data", d => { const i = d3.interpolate(d.current, d.target); return t => d.current = i(t); })
+      .filter(function(d) { return +this.getAttribute("fill-opacity") || arcVisible(d.target); })
+      .attr("fill-opacity", d => arcVisible(d.target) ? (d.children ? 0.6 : 0.9) : 0)
+      .attrTween("d", d => () => arc(d.current));
+    label.filter(function(d) { return +this.getAttribute("fill-opacity") || labelVisible(d.target); })
+      .transition(t)
+      .attr("fill-opacity", d => +labelVisible(d.target))
+      .attrTween("transform", d => () => labelTransform(d.current));
+    centerText.text(p === root ? "Total" : p.data.name);
+    centerVal.text(p.value.toFixed(1) + " " + UNIT);
+  }
+
+  function arcVisible(d)   { return d.y1 <= root.height + 1 && d.y0 >= 1 && d.x1 > d.x0; }
+  function labelVisible(d) { return d.y1 <= root.height + 1 && d.y0 >= 1 && (d.y1 - d.y0) * (d.x1 - d.x0) > 0.04; }
+  function labelTransform(d) {
+    const x = (d.x0 + d.x1) / 2 * 180 / Math.PI;
+    const y = (d.y0 + d.y1) / 2 * radius;
+    return `rotate(${x - 90}) translate(${y},0) rotate(${x < 180 ? 0 : 180})`;
+  }
+
+  exportCanvas(json.config, {root, W, H, radius}, "sunburst");
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -362,9 +494,15 @@ function drawSankey(json, W, H) {
     .on("mouseover", (e,d) => showTT(e, d.name.trim(), d.value, ""))
     .on("mousemove", moveTT).on("mouseout", hideTT);
 
-  node.append("text").attr("x", d=>d.x0<W/2?d.x1+6:d.x0-6).attr("y", d=>(d.y1+d.y0)/2).attr("dy","0.35em")
-    .attr("text-anchor", d=>d.x0<W/2?"start":"end")
-    .style("font-size","12px").style("font-weight","bold").text(d=>d.name.trim());
+  const nodeText = node.append("text")
+    .attr("x", d=>d.x0<W/2?d.x1+6:d.x0-6).attr("y", d=>(d.y1+d.y0)/2)
+    .attr("text-anchor", d=>d.x0<W/2?"start":"end").style("pointer-events","none");
+  nodeText.append("tspan")
+    .attr("x", d=>d.x0<W/2?d.x1+6:d.x0-6).attr("dy","-0.3em")
+    .style("font-size","12px").style("font-weight","700").style("fill","#222").text(d=>d.name.trim());
+  nodeText.append("tspan")
+    .attr("x", d=>d.x0<W/2?d.x1+6:d.x0-6).attr("dy","1.3em")
+    .style("font-size","10px").style("fill","#666").text(d=>d.value.toFixed(1)+" "+UNIT);
 
   exportCanvas(json.config, {sNodes, sLinks, W, H}, "sankey");
 }
@@ -402,16 +540,26 @@ function exportCanvas(config, layout, type) {
   }
   else if (type === "pack") {
     d3.pack().size([drawW, drawH]).padding(3*scale)(layout.root);
+    const MIN_R_NAME = Math.max(drawW, drawH) * 0.08;  // ~8% of canvas = label threshold
+    const MIN_R_VAL  = MIN_R_NAME * 1.4;
+    // Pass 1: all circles
     layout.root.descendants().slice(1).forEach(d => {
       ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
       ctx.fillStyle = d.children ? "rgba(235,235,235,0.7)" : color(d.parent.data.name!=="Total"?d.parent.data.name:d.data.name);
       ctx.fill(); ctx.strokeStyle = d.children ? "#ddd" : "#fff"; ctx.lineWidth = 2*scale; ctx.stroke();
-      if(!d.children && d.r>25*scale){
-        ctx.fillStyle='#fff'; ctx.font=`bold ${12*fs}px sans-serif`; ctx.textAlign="center"; ctx.fillText(d.data.name, d.x, d.y-4*scale);
-        if(d.r>35*scale){ ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font=`${10*fs}px sans-serif`; ctx.fillText(d.data.value.toFixed(0), d.x, d.y+12*scale); }
+    });
+    // Pass 2: labels on top, strict threshold
+    ctx.textAlign = "center";
+    layout.root.descendants().slice(1).forEach(d => {
+      if (d.children || d.r < MIN_R_NAME) return;
+      ctx.fillStyle = '#fff'; ctx.font = `bold ${12*fs}px sans-serif`;
+      ctx.fillText(d.data.name, d.x, d.y + (d.r > MIN_R_VAL ? -4*scale : 4*scale));
+      if (d.r > MIN_R_VAL) {
+        ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = `${10*fs}px sans-serif`;
+        ctx.fillText(d.value.toFixed(1)+" "+UNIT, d.x, d.y + 12*scale);
       }
     });
-    ctx.textAlign="left";
+    ctx.textAlign = "left";
   }
   else if (type === "bar") {
     ctx.translate(layout.margin.left*scale, layout.margin.top*scale);
@@ -448,8 +596,8 @@ function exportCanvas(config, layout, type) {
         ctx.beginPath(); ctx.arc(0,0,midR-3,sa,ea); ctx.arc(0,0,innerR,ea,sa,true); ctx.closePath();
         ctx.fillStyle = color(s.data.name); ctx.fill();
         ctx.strokeStyle = '#fff'; ctx.lineWidth = 2*scale; ctx.stroke();
-        // Label
-        if (s.endAngle - s.startAngle > 0.25) {
+        // Label — only for large segments
+        if (s.endAngle - s.startAngle > 0.4) {
           const mid = (s.startAngle+s.endAngle)/2, r = (innerR+midR-3)/2;
           ctx.fillStyle='#fff'; ctx.font=`bold ${11*fs}px sans-serif`; ctx.textAlign='center';
           ctx.fillText(s.data.name, Math.sin(mid)*r, -Math.cos(mid)*r+4*scale);
@@ -485,6 +633,45 @@ function exportCanvas(config, layout, type) {
     ctx.fillText("Total", 0, -4*scale);
     ctx.fillStyle='#666'; ctx.font=`${12*fs}px sans-serif`;
     ctx.fillText(total.toFixed(1)+" "+UNIT, 0, 16*scale);
+    ctx.restore();
+  }
+  else if (type === "sunburst") {
+    const maxR = Math.min(drawW, drawH) / 2 - 5 * scale;
+    const r = maxR / (layout.root.height + 1);
+    d3.partition().size([2 * Math.PI, layout.root.height + 1])(layout.root);
+    ctx.save();
+    ctx.translate(drawW / 2, drawH / 2);
+    layout.root.descendants().filter(d => d.depth).forEach(d => {
+      let anc = d; while (anc.depth > 1) anc = anc.parent;
+      ctx.beginPath();
+      ctx.arc(0, 0, Math.max(d.y0 * r, d.y1 * r - 1), d.x0 - Math.PI/2, d.x1 - Math.PI/2);
+      ctx.arc(0, 0, d.y0 * r, d.x1 - Math.PI/2, d.x0 - Math.PI/2, true);
+      ctx.closePath();
+      ctx.fillStyle = color(anc.data.name);
+      ctx.globalAlpha = d.children ? 0.6 : 0.9; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = scale; ctx.stroke();
+      const span = (d.x1 - d.x0) * (d.y0 + d.y1) / 2 * r;
+      if (span > 38) {  // absolute px threshold — not scale-dependent
+        const angle = (d.x0 + d.x1) / 2, midR = (d.y0 + d.y1) / 2 * r;
+        ctx.save();
+        ctx.rotate(angle - Math.PI / 2); ctx.translate(midR, 0);
+        if (angle > Math.PI) ctx.rotate(Math.PI);
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+        ctx.font = `bold ${11*fs}px sans-serif`;
+        ctx.fillText(d.data.name, 0, span > 58 ? -3 * scale : 4 * scale);
+        if (span > 58) {
+          ctx.globalAlpha = 0.85; ctx.font = `${10*fs}px sans-serif`;
+          ctx.fillText(d.value.toFixed(1) + " " + UNIT, 0, 10 * scale);
+          ctx.globalAlpha = 1;
+        }
+        ctx.restore();
+      }
+    });
+    const total = layout.root.value;
+    ctx.fillStyle = '#333'; ctx.font = `bold ${13*fs}px sans-serif`; ctx.textAlign = 'center';
+    ctx.fillText("Total", 0, -4 * scale);
+    ctx.fillStyle = '#666'; ctx.font = `${11*fs}px sans-serif`;
+    ctx.fillText(total.toFixed(1) + " " + UNIT, 0, 12 * scale);
     ctx.restore();
   }
   else if (type === "sankey") {
