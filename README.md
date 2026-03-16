@@ -1,8 +1,12 @@
+<p align="center">
+  <img src="assets\logo.png" alt="Data Muncher" width="200"/>
+</p>
+
 # Data Muncher 🍪
 
 **Modern web data visualisation, live inside Rhino.**
 
-Built at AEC Tech Hackathon 2025 by a ridiculously talented group of people from across the industry — architects, engineers, computational designers — who all shared the same frustration: Grasshopper gives you the data, but nowhere useful to look at it.
+Built at AEC Tech Hackathon 2026 by a ridiculously talented group of people from across the industry — architects, engineers, computational designers — who all shared the same frustration: Grasshopper gives you the data, but it's challenging to look at it.
 
 ---
 
@@ -67,16 +71,14 @@ The Eto panel will open automatically and the dashboard will appear. If you just
 
 ## The team
 
-Built in 24 hours at AEC Tech Hackathon 2025 by a team spanning Zaha Hadid Architects, Populous, KPF, Heatherwick Studio, Grimshaw Architects, AA DRL, and AA Emtech. Nine people. One shared frustration. One weekend.
-
+Built in 24 hours at AEC Tech Hackathon 2026 by a team spanning Zaha Hadid Architects, Populous, KPF, Heatherwick Studio, Grimshaw Architects, AA DRL, and AA Emtech. Nine people. One shared frustration. One weekend.
 ---
 
 ## What's next
 
-- Native Rhino panel via `Eto.WebView` (embedded, no browser tab)
 - Expanded chart library — parallel coordinates, force graph
 - Publish to Food4Rhino as a proper GH plugin
 
 ---
 
-*Data Muncher. Because your parametric data deserves better than a panel.*
+*Data Muncher. Because your parametric data deserves better than a panel*
