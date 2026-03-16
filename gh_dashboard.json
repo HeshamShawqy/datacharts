@@ -1,5 +1,5 @@
 {
-  "updated": "2026-03-16 23:29:48",
+  "updated": "2026-03-16 23:33:58",
   "config": {
     "type": "sunburst",
     "title": "Grasshopper Dashboard",
@@ -10,413 +10,313 @@
   "data": [
     {
       "name": "C_0_0",
-      "value": 18.057415160177534,
+      "value": 15.667529368656016,
       "parent": "Column_0"
     },
     {
       "name": "C_0_1",
-      "value": 17.342383563518666,
+      "value": 15.582162497585914,
       "parent": "Column_0"
     },
     {
       "name": "C_0_2",
-      "value": 16.060154245269175,
+      "value": 15.302837187335351,
       "parent": "Column_0"
     },
     {
       "name": "C_0_3",
-      "value": 19.021352519117098,
+      "value": 14.801603024853293,
       "parent": "Column_0"
     },
     {
       "name": "C_0_4",
-      "value": 18.94459292051611,
+      "value": 14.49597044945492,
       "parent": "Column_0"
     },
     {
       "name": "C_0_5",
-      "value": 15.790498419439599,
+      "value": 14.6483050785012,
       "parent": "Column_0"
     },
     {
       "name": "C_0_6",
-      "value": 16.882077814943255,
+      "value": 14.580811943542123,
       "parent": "Column_0"
     },
     {
       "name": "C_0_7",
-      "value": 17.55579072637103,
+      "value": 14.263033236856044,
       "parent": "Column_0"
     },
     {
       "name": "C_0_8",
-      "value": 18.61840070255544,
+      "value": 14.392437339539418,
       "parent": "Column_0"
     },
     {
       "name": "C_0_9",
-      "value": 18.64203573260341,
+      "value": 14.89144129505869,
+      "parent": "Column_0"
+    },
+    {
+      "name": "C_0_10",
+      "value": 15.19727627229725,
+      "parent": "Column_0"
+    },
+    {
+      "name": "C_0_11",
+      "value": 15.37410309737598,
+      "parent": "Column_0"
+    },
+    {
+      "name": "C_0_12",
+      "value": 16.002579338158156,
+      "parent": "Column_0"
+    },
+    {
+      "name": "C_0_13",
+      "value": 16.507889941739794,
+      "parent": "Column_0"
+    },
+    {
+      "name": "C_0_14",
+      "value": 16.54687341692393,
+      "parent": "Column_0"
+    },
+    {
+      "name": "C_0_15",
+      "value": 16.11641201773442,
       "parent": "Column_0"
     },
     {
       "name": "C_1_0",
-      "value": 17.211738005643635,
+      "value": 13.827200071965922,
       "parent": "Column_1"
     },
     {
       "name": "C_1_1",
-      "value": 16.39790938506066,
+      "value": 13.985578416793938,
       "parent": "Column_1"
     },
     {
       "name": "C_1_2",
-      "value": 15.706920513151978,
+      "value": 13.941325708948606,
       "parent": "Column_1"
     },
     {
       "name": "C_1_3",
-      "value": 14.990243272267747,
+      "value": 13.70146681532001,
       "parent": "Column_1"
     },
     {
       "name": "C_1_4",
-      "value": 16.110619954148298,
+      "value": 13.64190141135489,
       "parent": "Column_1"
     },
     {
       "name": "C_1_5",
-      "value": 16.155916310948527,
+      "value": 13.838492299207356,
       "parent": "Column_1"
     },
     {
       "name": "C_1_6",
-      "value": 15.055796952843512,
+      "value": 13.830485283767315,
       "parent": "Column_1"
     },
     {
       "name": "C_1_7",
-      "value": 15.717997198952995,
+      "value": 13.53902539759992,
       "parent": "Column_1"
     },
     {
       "name": "C_1_8",
-      "value": 16.371983061963082,
+      "value": 13.454325162024341,
       "parent": "Column_1"
     },
     {
       "name": "C_1_9",
-      "value": 17.172929098129433,
+      "value": 13.739724725812831,
       "parent": "Column_1"
     },
     {
       "name": "C_1_10",
-      "value": 18.295518343449537,
+      "value": 13.75688314869154,
       "parent": "Column_1"
     },
     {
       "name": "C_1_11",
-      "value": 20.306135755801144,
+      "value": 13.586353858363779,
       "parent": "Column_1"
     },
     {
       "name": "C_1_12",
-      "value": 20.31872800747231,
+      "value": 13.863901797516126,
       "parent": "Column_1"
     },
     {
       "name": "C_1_13",
-      "value": 18.33110797763702,
+      "value": 14.119502845053455,
+      "parent": "Column_1"
+    },
+    {
+      "name": "C_1_14",
+      "value": 14.128129719184685,
+      "parent": "Column_1"
+    },
+    {
+      "name": "C_1_15",
+      "value": 13.915576764056333,
       "parent": "Column_1"
     },
     {
       "name": "C_2_0",
-      "value": 13.234274790614599,
+      "value": 15.340953388428758,
       "parent": "Column_2"
     },
     {
       "name": "C_2_1",
-      "value": 13.302653170730641,
+      "value": 18.45789002617359,
       "parent": "Column_2"
     },
     {
       "name": "C_2_2",
-      "value": 13.265809930779168,
+      "value": 18.518905242070982,
       "parent": "Column_2"
     },
     {
       "name": "C_2_3",
-      "value": 13.092225552019979,
+      "value": 15.411801582698665,
       "parent": "Column_2"
     },
     {
       "name": "C_2_4",
-      "value": 13.103801125723951,
+      "value": 16.616789038439595,
       "parent": "Column_2"
     },
     {
       "name": "C_2_5",
-      "value": 13.614451342107262,
+      "value": 17.472521818246776,
       "parent": "Column_2"
     },
     {
       "name": "C_2_6",
-      "value": 13.130024334943151,
+      "value": 18.592784195991158,
       "parent": "Column_2"
     },
     {
       "name": "C_2_7",
-      "value": 11.12683829028213,
+      "value": 18.602037853629824,
       "parent": "Column_2"
     },
     {
       "name": "C_2_8",
-      "value": 12.809191378724908,
+      "value": 17.651131202461862,
       "parent": "Column_2"
     },
     {
       "name": "C_2_9",
-      "value": 13.325409374454864,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_10",
-      "value": 12.466593299520984,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_11",
-      "value": 11.050181973782953,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_12",
-      "value": 11.35737674799341,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_13",
-      "value": 13.75130985351054,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_14",
-      "value": 13.958838850783767,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_15",
-      "value": 13.485970151817558,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_16",
-      "value": 11.11403664965998,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_17",
-      "value": 10.419097528241956,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_18",
-      "value": 10.42453925863941,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_19",
-      "value": 11.1164994867266,
+      "value": 16.718635233953712,
       "parent": "Column_2"
     },
     {
       "name": "C_3_0",
-      "value": 15.36496930755563,
+      "value": 17.287707702546264,
       "parent": "Column_3"
     },
     {
       "name": "C_3_1",
-      "value": 15.860216239057449,
+      "value": 18.00432352366978,
       "parent": "Column_3"
     },
     {
       "name": "C_3_2",
-      "value": 17.572211228347644,
+      "value": 18.641732048662398,
       "parent": "Column_3"
     },
     {
       "name": "C_3_3",
-      "value": 22.765796511001554,
+      "value": 18.654223738236567,
       "parent": "Column_3"
     },
     {
       "name": "C_3_4",
-      "value": 22.76821800127116,
+      "value": 17.917491719107073,
       "parent": "Column_3"
     },
     {
       "name": "C_3_5",
-      "value": 17.601124762640342,
+      "value": 17.181008429485793,
       "parent": "Column_3"
     },
     {
       "name": "C_3_6",
-      "value": 16.06424648674271,
+      "value": 16.01900628488407,
       "parent": "Column_3"
     },
     {
       "name": "C_3_7",
-      "value": 15.487936627512868,
+      "value": 19.11642065067426,
+      "parent": "Column_3"
+    },
+    {
+      "name": "C_3_8",
+      "value": 19.12456582680248,
+      "parent": "Column_3"
+    },
+    {
+      "name": "C_3_9",
+      "value": 16.07676106476873,
       "parent": "Column_3"
     },
     {
       "name": "C_4_0",
-      "value": 17.39388211917661,
+      "value": 16.6964418808876,
       "parent": "Column_4"
     },
     {
       "name": "C_4_1",
-      "value": 18.072087855622048,
+      "value": 17.59526251465003,
       "parent": "Column_4"
     },
     {
       "name": "C_4_2",
-      "value": 18.64591697287594,
+      "value": 18.61255280541639,
       "parent": "Column_4"
     },
     {
       "name": "C_4_3",
-      "value": 18.644971193972875,
+      "value": 18.67157487546297,
       "parent": "Column_4"
     },
     {
       "name": "C_4_4",
-      "value": 17.83942520609712,
+      "value": 17.97145251733508,
       "parent": "Column_4"
     },
     {
       "name": "C_4_5",
-      "value": 17.086961291407512,
+      "value": 17.162878056515463,
       "parent": "Column_4"
     },
     {
       "name": "C_4_6",
-      "value": 15.980159291208299,
+      "value": 15.813006522214458,
       "parent": "Column_4"
     },
     {
       "name": "C_4_7",
-      "value": 19.139501427676056,
+      "value": 18.790913200908687,
       "parent": "Column_4"
     },
     {
       "name": "C_4_8",
-      "value": 19.20624069654713,
+      "value": 18.740807495899865,
       "parent": "Column_4"
     },
     {
       "name": "C_4_9",
-      "value": 16.182566906493626,
+      "value": 15.594802619875953,
       "parent": "Column_4"
-    },
-    {
-      "name": "C_5_0",
-      "value": 16.889757944115672,
-      "parent": "Column_5"
-    },
-    {
-      "name": "C_5_1",
-      "value": 17.75494291711956,
-      "parent": "Column_5"
-    },
-    {
-      "name": "C_5_2",
-      "value": 18.64766101377929,
-      "parent": "Column_5"
-    },
-    {
-      "name": "C_5_3",
-      "value": 18.636279719236107,
-      "parent": "Column_5"
-    },
-    {
-      "name": "C_5_4",
-      "value": 17.62686521521841,
-      "parent": "Column_5"
-    },
-    {
-      "name": "C_5_5",
-      "value": 16.781111611688033,
-      "parent": "Column_5"
-    },
-    {
-      "name": "C_5_6",
-      "value": 15.604453476546258,
-      "parent": "Column_5"
-    },
-    {
-      "name": "C_5_7",
-      "value": 18.660980069318647,
-      "parent": "Column_5"
-    },
-    {
-      "name": "C_5_8",
-      "value": 18.655233587338365,
-      "parent": "Column_5"
-    },
-    {
-      "name": "C_5_9",
-      "value": 15.622899554761995,
-      "parent": "Column_5"
-    },
-    {
-      "name": "C_6_0",
-      "value": 16.579812563327078,
-      "parent": "Column_6"
-    },
-    {
-      "name": "C_6_1",
-      "value": 17.533222923533287,
-      "parent": "Column_6"
-    },
-    {
-      "name": "C_6_2",
-      "value": 18.62609673639143,
-      "parent": "Column_6"
-    },
-    {
-      "name": "C_6_3",
-      "value": 18.616164660261557,
-      "parent": "Column_6"
-    },
-    {
-      "name": "C_6_4",
-      "value": 17.733126422513063,
-      "parent": "Column_6"
-    },
-    {
-      "name": "C_6_5",
-      "value": 16.860910837221866,
-      "parent": "Column_6"
-    },
-    {
-      "name": "C_6_6",
-      "value": 15.517372272637676,
-      "parent": "Column_6"
-    },
-    {
-      "name": "C_6_7",
-      "value": 18.582510652444274,
-      "parent": "Column_6"
-    },
-    {
-      "name": "C_6_8",
-      "value": 18.52129756731868,
-      "parent": "Column_6"
-    },
-    {
-      "name": "C_6_9",
-      "value": 15.321349946372806,
-      "parent": "Column_6"
     }
   ]
 }

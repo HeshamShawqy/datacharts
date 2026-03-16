@@ -4,6 +4,10 @@
 
 # Data Muncher 
 
+<p align="center">
+  <img src="assets\data_muncher.png" alt="Data Muncher" width="600"/>
+</p>
+
 **Modern web data visualisation, live inside Rhino.**
 
 Built at AEC Tech Hackathon 2026 by a ridiculously talented group of people from across the industry - architects, engineers, computational designers - who all shared the same frustration: Grasshopper gives you the data, but it's challenging to look at it.
