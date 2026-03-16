@@ -72,11 +72,20 @@ The Eto panel will open automatically and the dashboard will appear. If you just
 ## The team
 
 Built in 24 hours at AEC Tech Hackathon 2026 by a team spanning Zaha Hadid Architects, Populous, KPF, Heatherwick Studio, Grimshaw Architects, AA DRL, and AA Emtech. Nine people. One shared frustration. One weekend.
+- Hesham Shawqy
+- Joanna Sabak 
+- Michal Scigaj 
+- Jonathan Wong 
+- Matea Pinjušić 
+- Naman Patel 
+- Supreeth Vijayakumar 
+- Zeynep Çolak 
+- Maria Paula
 ---
 
 ## What's next
 
-- Expanded chart library — parallel coordinates, force graph
+- Expanded chart library, parallel coordinates, force graph
 - Publish to Food4Rhino as a proper GH plugin
 
 ---
