@@ -2,17 +2,17 @@
   <img src="assets\logo.png" alt="Data Muncher" width="200"/>
 </p>
 
-# Data Muncher 🍪
+# Data Muncher 
 
 **Modern web data visualisation, live inside Rhino.**
 
-Built at AEC Tech Hackathon 2026 by a ridiculously talented group of people from across the industry — architects, engineers, computational designers — who all shared the same frustration: Grasshopper gives you the data, but it's challenging to look at it.
+Built at AEC Tech Hackathon 2026 by a ridiculously talented group of people from across the industry - architects, engineers, computational designers - who all shared the same frustration: Grasshopper gives you the data, but it's challenging to look at it.
 
 ---
 
 ## The idea
 
-Existing GH plugins stop at panels and basic charts. Data Muncher goes further — it bridges your parametric geometry with D3.js, one of the most powerful data visualisation libraries on the web, and renders the result as a live dashboard directly inside Rhino's viewport.
+Existing GH plugins stop at panels and basic charts. Data Muncher goes further - it bridges your parametric geometry with D3.js, one of the most powerful data visualisation libraries on the web, and renders the result as a live dashboard directly inside Rhino's viewport.
 
 Move a slider. Watch the treemap reflow. No tab switching. No spreadsheets. No server.
 
@@ -54,7 +54,7 @@ The architecture is deliberately lightweight. No cloud. No external dependencies
 4. **Update the file paths** inside `gh_component_viewport.py` — specifically `SERVE_DIR` to point to your local clone directory
 5. Set `enable` to `True` and run
 
-The Eto panel will open automatically and the dashboard will appear. If you just want to test with sample data, the repo includes `gh_dashboard.json` with a working dataset — open `index.html` directly in a browser to see it render.
+The Eto panel will open automatically and the dashboard will appear. If you just want to test with sample data, the repo includes `gh_dashboard.json` with a working dataset - open `index.html` directly in a browser to see it render.
 
 > No internet required once D3.js is cached. For fully offline use, download `d3.min.js` locally and update the script src in `index.html`.
 
@@ -65,7 +65,7 @@ The Eto panel will open automatically and the dashboard will appear. If you just
 - Rhino 8
 - Grasshopper + GhPython
 - Python standard library (`http.server`, `json`, `threading`)
-- D3.js v7 via CDN — loaded once, cached by browser
+- D3.js v7 via CDN - loaded once, cached by browser
 
 ---
 
