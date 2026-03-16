@@ -5,7 +5,7 @@
 # Data Muncher 
 
 <p align="center">
-  <img src="assets\data_muncher.png" alt="Data Muncher" width="600"/>
+  <img src="assets\data_muncher.png" alt="Data Muncher" width="800"/>
 </p>
 
 **Modern web data visualisation, live inside Rhino.**
