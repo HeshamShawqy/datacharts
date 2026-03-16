@@ -1,322 +1,87 @@
 {
-  "updated": "2026-03-16 23:33:58",
+  "updated": "2026-03-16 23:55:51",
   "config": {
     "type": "sunburst",
     "title": "Grasshopper Dashboard",
     "subtitle": "Live Data Feed",
-    "w": 519,
+    "w": 553,
     "font_scale": 1.0
   },
   "data": [
     {
-      "name": "C_0_0",
-      "value": 15.667529368656016,
-      "parent": "Column_0"
+      "name": "Zone-A",
+      "value": 72.78937577420635,
+      "parent": "Residential"
     },
     {
-      "name": "C_0_1",
-      "value": 15.582162497585914,
-      "parent": "Column_0"
+      "name": "Zone-B",
+      "value": 29.597822751242546,
+      "parent": "Commercial"
     },
     {
-      "name": "C_0_2",
-      "value": 15.302837187335351,
-      "parent": "Column_0"
+      "name": "Zone-C",
+      "value": 86.57692772368956,
+      "parent": "Industrial"
     },
     {
-      "name": "C_0_3",
-      "value": 14.801603024853293,
-      "parent": "Column_0"
+      "name": "Zone-D",
+      "value": 53.73651594282527,
+      "parent": "Residential"
     },
     {
-      "name": "C_0_4",
-      "value": 14.49597044945492,
-      "parent": "Column_0"
+      "name": "Zone-E",
+      "value": 9.683719644235275,
+      "parent": "Commercial"
     },
     {
-      "name": "C_0_5",
-      "value": 14.6483050785012,
-      "parent": "Column_0"
+      "name": "Zone-F",
+      "value": 28.325958391660436,
+      "parent": "Industrial"
     },
     {
-      "name": "C_0_6",
-      "value": 14.580811943542123,
-      "parent": "Column_0"
+      "name": "Zone-G",
+      "value": 11.138768652231525,
+      "parent": "Residential"
     },
     {
-      "name": "C_0_7",
-      "value": 14.263033236856044,
-      "parent": "Column_0"
+      "name": "Zone-H",
+      "value": 516.8679940586153,
+      "parent": "Commercial"
     },
     {
-      "name": "C_0_8",
-      "value": 14.392437339539418,
-      "parent": "Column_0"
+      "name": "Zone-I",
+      "value": 2685.7619123185887,
+      "parent": "Industrial"
     },
     {
-      "name": "C_0_9",
-      "value": 14.89144129505869,
-      "parent": "Column_0"
+      "name": "Zone-J",
+      "value": 704.8412388707366,
+      "parent": "Residential"
     },
     {
-      "name": "C_0_10",
-      "value": 15.19727627229725,
-      "parent": "Column_0"
+      "name": "Zone-K",
+      "value": 3553.9164286707073,
+      "parent": "Commercial"
     },
     {
-      "name": "C_0_11",
-      "value": 15.37410309737598,
-      "parent": "Column_0"
+      "name": "Zone-L",
+      "value": 1241.254674825094,
+      "parent": "Industrial"
     },
     {
-      "name": "C_0_12",
-      "value": 16.002579338158156,
-      "parent": "Column_0"
+      "name": "Zone-M",
+      "value": 774.6751516353144,
+      "parent": "Residential"
     },
     {
-      "name": "C_0_13",
-      "value": 16.507889941739794,
-      "parent": "Column_0"
+      "name": "Zone-N",
+      "value": 752.1010080694416,
+      "parent": "Commercial"
     },
     {
-      "name": "C_0_14",
-      "value": 16.54687341692393,
-      "parent": "Column_0"
-    },
-    {
-      "name": "C_0_15",
-      "value": 16.11641201773442,
-      "parent": "Column_0"
-    },
-    {
-      "name": "C_1_0",
-      "value": 13.827200071965922,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_1",
-      "value": 13.985578416793938,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_2",
-      "value": 13.941325708948606,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_3",
-      "value": 13.70146681532001,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_4",
-      "value": 13.64190141135489,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_5",
-      "value": 13.838492299207356,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_6",
-      "value": 13.830485283767315,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_7",
-      "value": 13.53902539759992,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_8",
-      "value": 13.454325162024341,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_9",
-      "value": 13.739724725812831,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_10",
-      "value": 13.75688314869154,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_11",
-      "value": 13.586353858363779,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_12",
-      "value": 13.863901797516126,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_13",
-      "value": 14.119502845053455,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_14",
-      "value": 14.128129719184685,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_1_15",
-      "value": 13.915576764056333,
-      "parent": "Column_1"
-    },
-    {
-      "name": "C_2_0",
-      "value": 15.340953388428758,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_1",
-      "value": 18.45789002617359,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_2",
-      "value": 18.518905242070982,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_3",
-      "value": 15.411801582698665,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_4",
-      "value": 16.616789038439595,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_5",
-      "value": 17.472521818246776,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_6",
-      "value": 18.592784195991158,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_7",
-      "value": 18.602037853629824,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_8",
-      "value": 17.651131202461862,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_2_9",
-      "value": 16.718635233953712,
-      "parent": "Column_2"
-    },
-    {
-      "name": "C_3_0",
-      "value": 17.287707702546264,
-      "parent": "Column_3"
-    },
-    {
-      "name": "C_3_1",
-      "value": 18.00432352366978,
-      "parent": "Column_3"
-    },
-    {
-      "name": "C_3_2",
-      "value": 18.641732048662398,
-      "parent": "Column_3"
-    },
-    {
-      "name": "C_3_3",
-      "value": 18.654223738236567,
-      "parent": "Column_3"
-    },
-    {
-      "name": "C_3_4",
-      "value": 17.917491719107073,
-      "parent": "Column_3"
-    },
-    {
-      "name": "C_3_5",
-      "value": 17.181008429485793,
-      "parent": "Column_3"
-    },
-    {
-      "name": "C_3_6",
-      "value": 16.01900628488407,
-      "parent": "Column_3"
-    },
-    {
-      "name": "C_3_7",
-      "value": 19.11642065067426,
-      "parent": "Column_3"
-    },
-    {
-      "name": "C_3_8",
-      "value": 19.12456582680248,
-      "parent": "Column_3"
-    },
-    {
-      "name": "C_3_9",
-      "value": 16.07676106476873,
-      "parent": "Column_3"
-    },
-    {
-      "name": "C_4_0",
-      "value": 16.6964418808876,
-      "parent": "Column_4"
-    },
-    {
-      "name": "C_4_1",
-      "value": 17.59526251465003,
-      "parent": "Column_4"
-    },
-    {
-      "name": "C_4_2",
-      "value": 18.61255280541639,
-      "parent": "Column_4"
-    },
-    {
-      "name": "C_4_3",
-      "value": 18.67157487546297,
-      "parent": "Column_4"
-    },
-    {
-      "name": "C_4_4",
-      "value": 17.97145251733508,
-      "parent": "Column_4"
-    },
-    {
-      "name": "C_4_5",
-      "value": 17.162878056515463,
-      "parent": "Column_4"
-    },
-    {
-      "name": "C_4_6",
-      "value": 15.813006522214458,
-      "parent": "Column_4"
-    },
-    {
-      "name": "C_4_7",
-      "value": 18.790913200908687,
-      "parent": "Column_4"
-    },
-    {
-      "name": "C_4_8",
-      "value": 18.740807495899865,
-      "parent": "Column_4"
-    },
-    {
-      "name": "C_4_9",
-      "value": 15.594802619875953,
-      "parent": "Column_4"
+      "name": "Zone-O",
+      "value": 3553.9164286707014,
+      "parent": "Industrial"
     }
   ]
 }
