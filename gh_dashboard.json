@@ -1,257 +1,422 @@
 {
-  "updated": "2026-03-15 01:09:55",
+  "updated": "2026-03-16 23:29:48",
   "config": {
-    "type": "treemap",
+    "type": "sunburst",
     "title": "Grasshopper Dashboard",
     "subtitle": "Live Data Feed",
-    "w": 694,
+    "w": 519,
     "font_scale": 1.0
   },
   "data": [
     {
-      "name": "0.0",
-      "value": 1384.0,
-      "parent": "Retail"
+      "name": "C_0_0",
+      "value": 18.057415160177534,
+      "parent": "Column_0"
     },
     {
-      "name": "1.0",
-      "value": 1380.0,
-      "parent": "Retail"
+      "name": "C_0_1",
+      "value": 17.342383563518666,
+      "parent": "Column_0"
     },
     {
-      "name": "2.0",
-      "value": 1423.0,
-      "parent": "Retail"
+      "name": "C_0_2",
+      "value": 16.060154245269175,
+      "parent": "Column_0"
     },
     {
-      "name": "3.0",
-      "value": 1513.0,
-      "parent": "Retail"
+      "name": "C_0_3",
+      "value": 19.021352519117098,
+      "parent": "Column_0"
     },
     {
-      "name": "4.0",
-      "value": 1650.0,
-      "parent": "Retail"
+      "name": "C_0_4",
+      "value": 18.94459292051611,
+      "parent": "Column_0"
     },
     {
-      "name": "5.0",
-      "value": 1833.0,
-      "parent": "Retail"
+      "name": "C_0_5",
+      "value": 15.790498419439599,
+      "parent": "Column_0"
     },
     {
-      "name": "6.0",
-      "value": 2064.0,
-      "parent": "Retail"
+      "name": "C_0_6",
+      "value": 16.882077814943255,
+      "parent": "Column_0"
     },
     {
-      "name": "7.0",
-      "value": 2341.0,
-      "parent": "Retail"
+      "name": "C_0_7",
+      "value": 17.55579072637103,
+      "parent": "Column_0"
     },
     {
-      "name": "8.0",
-      "value": 2665.0,
-      "parent": "Retail"
+      "name": "C_0_8",
+      "value": 18.61840070255544,
+      "parent": "Column_0"
     },
     {
-      "name": "9.0",
-      "value": 3035.0,
-      "parent": "Retail"
+      "name": "C_0_9",
+      "value": 18.64203573260341,
+      "parent": "Column_0"
     },
     {
-      "name": "10.0",
-      "value": 3453.0,
-      "parent": "Retail"
+      "name": "C_1_0",
+      "value": 17.211738005643635,
+      "parent": "Column_1"
     },
     {
-      "name": "11.0",
-      "value": 3917.0,
-      "parent": "Retail"
+      "name": "C_1_1",
+      "value": 16.39790938506066,
+      "parent": "Column_1"
     },
     {
-      "name": "12.0",
-      "value": 3944.0,
-      "parent": "Office"
+      "name": "C_1_2",
+      "value": 15.706920513151978,
+      "parent": "Column_1"
     },
     {
-      "name": "13.0",
-      "value": 3786.0,
-      "parent": "Office"
+      "name": "C_1_3",
+      "value": 14.990243272267747,
+      "parent": "Column_1"
     },
     {
-      "name": "14.0",
-      "value": 3632.0,
-      "parent": "Office"
+      "name": "C_1_4",
+      "value": 16.110619954148298,
+      "parent": "Column_1"
     },
     {
-      "name": "15.0",
-      "value": 3483.0,
-      "parent": "Office"
+      "name": "C_1_5",
+      "value": 16.155916310948527,
+      "parent": "Column_1"
     },
     {
-      "name": "16.0",
-      "value": 3338.0,
-      "parent": "Office"
+      "name": "C_1_6",
+      "value": 15.055796952843512,
+      "parent": "Column_1"
     },
     {
-      "name": "17.0",
-      "value": 3196.0,
-      "parent": "Office"
+      "name": "C_1_7",
+      "value": 15.717997198952995,
+      "parent": "Column_1"
     },
     {
-      "name": "18.0",
-      "value": 3059.0,
-      "parent": "Office"
+      "name": "C_1_8",
+      "value": 16.371983061963082,
+      "parent": "Column_1"
     },
     {
-      "name": "19.0",
-      "value": 2926.0,
-      "parent": "Office"
+      "name": "C_1_9",
+      "value": 17.172929098129433,
+      "parent": "Column_1"
     },
     {
-      "name": "20.0",
-      "value": 2797.0,
-      "parent": "Office"
+      "name": "C_1_10",
+      "value": 18.295518343449537,
+      "parent": "Column_1"
     },
     {
-      "name": "21.0",
-      "value": 2673.0,
-      "parent": "Office"
+      "name": "C_1_11",
+      "value": 20.306135755801144,
+      "parent": "Column_1"
     },
     {
-      "name": "22.0",
-      "value": 2552.0,
-      "parent": "Office"
+      "name": "C_1_12",
+      "value": 20.31872800747231,
+      "parent": "Column_1"
     },
     {
-      "name": "23.0",
-      "value": 2436.0,
-      "parent": "Office"
+      "name": "C_1_13",
+      "value": 18.33110797763702,
+      "parent": "Column_1"
     },
     {
-      "name": "24.0",
-      "value": 2323.0,
-      "parent": "Office"
+      "name": "C_2_0",
+      "value": 13.234274790614599,
+      "parent": "Column_2"
     },
     {
-      "name": "25.0",
-      "value": 2215.0,
-      "parent": "Office"
+      "name": "C_2_1",
+      "value": 13.302653170730641,
+      "parent": "Column_2"
     },
     {
-      "name": "26.0",
-      "value": 2111.0,
-      "parent": "Office"
+      "name": "C_2_2",
+      "value": 13.265809930779168,
+      "parent": "Column_2"
     },
     {
-      "name": "27.0",
-      "value": 2011.0,
-      "parent": "Office"
+      "name": "C_2_3",
+      "value": 13.092225552019979,
+      "parent": "Column_2"
     },
     {
-      "name": "28.0",
-      "value": 1915.0,
-      "parent": "Office"
+      "name": "C_2_4",
+      "value": 13.103801125723951,
+      "parent": "Column_2"
     },
     {
-      "name": "29.0",
-      "value": 1824.0,
-      "parent": "Office"
+      "name": "C_2_5",
+      "value": 13.614451342107262,
+      "parent": "Column_2"
     },
     {
-      "name": "30.0",
-      "value": 1736.0,
-      "parent": "Hospitality"
+      "name": "C_2_6",
+      "value": 13.130024334943151,
+      "parent": "Column_2"
     },
     {
-      "name": "31.0",
-      "value": 1653.0,
-      "parent": "Hospitality"
+      "name": "C_2_7",
+      "value": 11.12683829028213,
+      "parent": "Column_2"
     },
     {
-      "name": "32.0",
-      "value": 1573.0,
-      "parent": "Hospitality"
+      "name": "C_2_8",
+      "value": 12.809191378724908,
+      "parent": "Column_2"
     },
     {
-      "name": "33.0",
-      "value": 1498.0,
-      "parent": "Hospitality"
+      "name": "C_2_9",
+      "value": 13.325409374454864,
+      "parent": "Column_2"
     },
     {
-      "name": "34.0",
-      "value": 1427.0,
-      "parent": "Hospitality"
+      "name": "C_2_10",
+      "value": 12.466593299520984,
+      "parent": "Column_2"
     },
     {
-      "name": "35.0",
-      "value": 1360.0,
-      "parent": "Hospitality"
+      "name": "C_2_11",
+      "value": 11.050181973782953,
+      "parent": "Column_2"
     },
     {
-      "name": "36.0",
-      "value": 1297.0,
-      "parent": "Hospitality"
+      "name": "C_2_12",
+      "value": 11.35737674799341,
+      "parent": "Column_2"
     },
     {
-      "name": "37.0",
-      "value": 1238.0,
-      "parent": "Hospitality"
+      "name": "C_2_13",
+      "value": 13.75130985351054,
+      "parent": "Column_2"
     },
     {
-      "name": "38.0",
-      "value": 1184.0,
-      "parent": "Hospitality"
+      "name": "C_2_14",
+      "value": 13.958838850783767,
+      "parent": "Column_2"
     },
     {
-      "name": "39.0",
-      "value": 1133.0,
-      "parent": "Hospitality"
+      "name": "C_2_15",
+      "value": 13.485970151817558,
+      "parent": "Column_2"
     },
     {
-      "name": "40.0",
-      "value": 1087.0,
-      "parent": "Hospitality"
+      "name": "C_2_16",
+      "value": 11.11403664965998,
+      "parent": "Column_2"
     },
     {
-      "name": "41.0",
-      "value": 1045.0,
-      "parent": "Hospitality"
+      "name": "C_2_17",
+      "value": 10.419097528241956,
+      "parent": "Column_2"
     },
     {
-      "name": "42.0",
-      "value": 1006.0,
-      "parent": "Hotel"
+      "name": "C_2_18",
+      "value": 10.42453925863941,
+      "parent": "Column_2"
     },
     {
-      "name": "43.0",
-      "value": 972.0,
-      "parent": "Hotel"
+      "name": "C_2_19",
+      "value": 11.1164994867266,
+      "parent": "Column_2"
     },
     {
-      "name": "44.0",
-      "value": 943.0,
-      "parent": "Hotel"
+      "name": "C_3_0",
+      "value": 15.36496930755563,
+      "parent": "Column_3"
     },
     {
-      "name": "45.0",
-      "value": 917.0,
-      "parent": "Hotel"
+      "name": "C_3_1",
+      "value": 15.860216239057449,
+      "parent": "Column_3"
     },
     {
-      "name": "46.0",
-      "value": 895.0,
-      "parent": "Hotel"
+      "name": "C_3_2",
+      "value": 17.572211228347644,
+      "parent": "Column_3"
     },
     {
-      "name": "47.0",
-      "value": 878.0,
-      "parent": "Hotel"
+      "name": "C_3_3",
+      "value": 22.765796511001554,
+      "parent": "Column_3"
     },
     {
-      "name": "48.0",
-      "value": 864.0,
-      "parent": "Hotel"
+      "name": "C_3_4",
+      "value": 22.76821800127116,
+      "parent": "Column_3"
+    },
+    {
+      "name": "C_3_5",
+      "value": 17.601124762640342,
+      "parent": "Column_3"
+    },
+    {
+      "name": "C_3_6",
+      "value": 16.06424648674271,
+      "parent": "Column_3"
+    },
+    {
+      "name": "C_3_7",
+      "value": 15.487936627512868,
+      "parent": "Column_3"
+    },
+    {
+      "name": "C_4_0",
+      "value": 17.39388211917661,
+      "parent": "Column_4"
+    },
+    {
+      "name": "C_4_1",
+      "value": 18.072087855622048,
+      "parent": "Column_4"
+    },
+    {
+      "name": "C_4_2",
+      "value": 18.64591697287594,
+      "parent": "Column_4"
+    },
+    {
+      "name": "C_4_3",
+      "value": 18.644971193972875,
+      "parent": "Column_4"
+    },
+    {
+      "name": "C_4_4",
+      "value": 17.83942520609712,
+      "parent": "Column_4"
+    },
+    {
+      "name": "C_4_5",
+      "value": 17.086961291407512,
+      "parent": "Column_4"
+    },
+    {
+      "name": "C_4_6",
+      "value": 15.980159291208299,
+      "parent": "Column_4"
+    },
+    {
+      "name": "C_4_7",
+      "value": 19.139501427676056,
+      "parent": "Column_4"
+    },
+    {
+      "name": "C_4_8",
+      "value": 19.20624069654713,
+      "parent": "Column_4"
+    },
+    {
+      "name": "C_4_9",
+      "value": 16.182566906493626,
+      "parent": "Column_4"
+    },
+    {
+      "name": "C_5_0",
+      "value": 16.889757944115672,
+      "parent": "Column_5"
+    },
+    {
+      "name": "C_5_1",
+      "value": 17.75494291711956,
+      "parent": "Column_5"
+    },
+    {
+      "name": "C_5_2",
+      "value": 18.64766101377929,
+      "parent": "Column_5"
+    },
+    {
+      "name": "C_5_3",
+      "value": 18.636279719236107,
+      "parent": "Column_5"
+    },
+    {
+      "name": "C_5_4",
+      "value": 17.62686521521841,
+      "parent": "Column_5"
+    },
+    {
+      "name": "C_5_5",
+      "value": 16.781111611688033,
+      "parent": "Column_5"
+    },
+    {
+      "name": "C_5_6",
+      "value": 15.604453476546258,
+      "parent": "Column_5"
+    },
+    {
+      "name": "C_5_7",
+      "value": 18.660980069318647,
+      "parent": "Column_5"
+    },
+    {
+      "name": "C_5_8",
+      "value": 18.655233587338365,
+      "parent": "Column_5"
+    },
+    {
+      "name": "C_5_9",
+      "value": 15.622899554761995,
+      "parent": "Column_5"
+    },
+    {
+      "name": "C_6_0",
+      "value": 16.579812563327078,
+      "parent": "Column_6"
+    },
+    {
+      "name": "C_6_1",
+      "value": 17.533222923533287,
+      "parent": "Column_6"
+    },
+    {
+      "name": "C_6_2",
+      "value": 18.62609673639143,
+      "parent": "Column_6"
+    },
+    {
+      "name": "C_6_3",
+      "value": 18.616164660261557,
+      "parent": "Column_6"
+    },
+    {
+      "name": "C_6_4",
+      "value": 17.733126422513063,
+      "parent": "Column_6"
+    },
+    {
+      "name": "C_6_5",
+      "value": 16.860910837221866,
+      "parent": "Column_6"
+    },
+    {
+      "name": "C_6_6",
+      "value": 15.517372272637676,
+      "parent": "Column_6"
+    },
+    {
+      "name": "C_6_7",
+      "value": 18.582510652444274,
+      "parent": "Column_6"
+    },
+    {
+      "name": "C_6_8",
+      "value": 18.52129756731868,
+      "parent": "Column_6"
+    },
+    {
+      "name": "C_6_9",
+      "value": 15.321349946372806,
+      "parent": "Column_6"
     }
   ]
 }

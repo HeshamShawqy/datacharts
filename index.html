@@ -45,8 +45,21 @@ const UNIT = "m²";
 const color = d3.scaleOrdinal(d3.schemeTableau10);
 
 let lastUpdated = null;
+let lastChartType = null;
+let activeGroup = null;
 const svg = d3.select("#chart");
 const tooltip = d3.select("body").append("div").attr("id", "tooltip");
+
+// ── persistent zoom / pan wrapper ─────────────────────────────────────────
+// scroll = zoom  ·  drag = pan  ·  double-click = reset
+const zoomGroup = svg.append("g").attr("class", "zoom-root");
+
+const zoom = d3.zoom()
+  .scaleExtent([0.05, 10])
+  .on("zoom", event => zoomGroup.attr("transform", event.transform.toString()));
+
+svg.call(zoom).on("dblclick.zoom", null);
+svg.on("dblclick", () => svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity));
 
 function showTT(e, name, val, group) {
   let gText = (group && group !== "Total" && group !== name) ? `<div class="tt-val">Group: ${group}</div>` : '';
@@ -61,6 +74,37 @@ function moveTT(e) {
 function hideTT() { tooltip.style("opacity", 0); }
 
 // ════════════════════════════════════════════════════════════════════════════
+// crossfade renderer — builds new layer, fades out old one
+function renderChart(json, W, H) {
+  svg.attr("width", W).attr("height", H);
+  // pin color domain to current categories so no cross-render bleed
+  const cats = [...new Set(json.data.map(d => d.parent).filter(Boolean))];
+  color.domain(cats.length ? cats : [...new Set(json.data.map(d => d.name))]);
+  // reset pan/zoom when chart type changes so it starts aligned
+  if (json.config.type !== lastChartType) {
+    lastChartType = json.config.type;
+    svg.call(zoom.transform, d3.zoomIdentity);
+  }
+  const oldGroup = activeGroup;
+  const newGroup = zoomGroup.append("g").attr("class", "chart-layer").style("opacity", 0);
+  activeGroup = newGroup;
+
+  const type = json.config.type;
+  if      (type === "bar")      drawBarChart(json, W, H, newGroup);
+  else if (type === "pack")     drawCirclePack(json, W, H, newGroup);
+  else if (type === "pie")      drawDonut(json, W, H, newGroup);
+  else if (type === "sankey")   drawSankey(json, W, H, newGroup);
+  else if (type === "sunburst") drawSunburst(json, W, H, newGroup);
+  else                          drawTreemap(json, W, H, newGroup);
+
+  newGroup.transition().duration(400).ease(d3.easeCubicOut).style("opacity", 1);
+  if (oldGroup) {
+    oldGroup.transition().duration(300).style("opacity", 0)
+      .on("end", function() { d3.select(this).remove(); });
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // fetching data from json
 async function poll() {
   try {
@@ -68,22 +112,22 @@ async function poll() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const json = await res.json();
 
+    // safeguard: skip render if python passed no/bad data
+    if (!json.data || !Array.isArray(json.data)) return;
+    const clean = json.data.filter(d => d.value != null && isFinite(+d.value) && +d.value > 0);
+    if (clean.length === 0) return;
+    json.data = clean;
+
     if (json.updated !== lastUpdated) {
       lastUpdated = json.updated;
       const wrap = document.getElementById("chart-wrap");
       let W = wrap.clientWidth, H = wrap.clientHeight;
       if (!W || !H || W < 100 || H < 100) { W = 800; H = 600; }
-
-      const type = json.config.type;
-      if      (type === "bar")      drawBarChart(json, W, H);
-      else if (type === "pack")     drawCirclePack(json, W, H);
-      else if (type === "pie")      drawDonut(json, W, H);
-      else if (type === "sankey")   drawSankey(json, W, H);
-      else if (type === "sunburst") drawSunburst(json, W, H);
-      else                          drawTreemap(json, W, H);
+      renderChart(json, W, H);
     }
   } catch(e) {}
 }
+
 // ════════════════════════════════════════════════════════════════════════════
 // hierarchial data
 function buildHierarchy(data) {
@@ -94,16 +138,15 @@ function buildHierarchy(data) {
   const allNodes = [{ name: "Total", parent: null }, ...missing.map(p => ({ name: p, parent: "Total" })), ...data.map(d => ({ ...d, parent: d.parent || "Total" }))];
   return d3.stratify().id(d => d.name).parentId(d => d.parent)(allNodes).sum(d => d.value).sort((a,b) => b.value - a.value);
 }
+
 // ════════════════════════════════════════════════════════════════════════════
 // chart_01 Treemap
-function drawTreemap(json, W, H) {
-  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
+function drawTreemap(json, W, H, container) {
   const root = buildHierarchy(json.data);
   d3.treemap().size([W, H]).paddingOuter(4).paddingTop(22).paddingInner(2).round(true)(root);
-  const parents = svg.selectAll(".parent").data(root.children || []).enter().append("g");
-  parents.append("text").attr("class", "parent-label").attr("x", d=>d.x0+4).attr("y", d=>d.y0+14).text(d=>d.data.name);
 
-  const nodes = svg.selectAll(".node").data(root.leaves()).enter().append("g").attr("class", "node").attr("transform", d=>`translate(${d.x0},${d.y0})`);
+  // leaf nodes first (lower z-order) so parent labels render on top
+  const nodes = container.selectAll(".node").data(root.leaves()).enter().append("g").attr("class", "node").attr("transform", d=>`translate(${d.x0},${d.y0})`);
   nodes.append("rect").attr("width", d=>Math.max(0, d.x1-d.x0)).attr("height", d=>Math.max(0, d.y1-d.y0)).attr("rx", 3)
     .attr("fill", d=>color(d.parent.data.name!=="Total"?d.parent.data.name:d.data.name))
     .on("mouseover", (e, d) => showTT(e, d.data.name, d.value, d.parent ? d.parent.data.name : ""))
@@ -111,20 +154,35 @@ function drawTreemap(json, W, H) {
 
   nodes.each(function(d){
     const w = d.x1-d.x0, h = d.y1-d.y0, el = d3.select(this);
-    if(w>45&&h>25) el.append("text").attr("x",8).attr("y",18).style("font-size","12px").style("font-weight","600").style("fill","#fff").text(d.data.name);
-    if(w>60&&h>40) el.append("text").attr("x",8).attr("y",34).style("font-size","10px").style("fill","rgba(255,255,255,0.8)").text(d.value.toFixed(1));
+    if(w<=0||h<=0) return;
+    // clipPath keeps text strictly inside the rect
+    const uid = "tm-" + d.data.name.replace(/\W/g,"_") + "_" + Math.round(d.x0);
+    el.append("clipPath").attr("id", uid).append("rect")
+      .attr("x",2).attr("y",2).attr("width",Math.max(0,w-4)).attr("height",Math.max(0,h-4));
+    const tg = el.append("g").attr("clip-path", `url(#${uid})`);
+    if(w>45&&h>25) tg.append("text").attr("x",8).attr("y",18).style("font-size","12px").style("font-weight","600").style("fill","#fff").text(d.data.name);
+    if(w>60&&h>40) tg.append("text").attr("x",8).attr("y",34).style("font-size","10px").style("fill","rgba(255,255,255,0.8)").text(d.value.toFixed(1));
   });
+
+  // parent labels last — always on top of leaf rects
+  const parents = container.selectAll(".parent").data(root.children || []).enter().append("g");
+  parents.append("text").attr("class", "parent-label").attr("x", d=>d.x0+4).attr("y", d=>d.y0+14).text(d=>d.data.name);
+
   exportCanvas(json.config, {root, W, H}, "treemap");
 }
+
 // ════════════════════════════════════════════════════════════════════════════
 // chart_02 Circle Packing
-function drawCirclePack(json, W, H) {
-  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
+function drawCirclePack(json, W, H, container) {
   const root = buildHierarchy(json.data);
   d3.pack().size([W, H]).padding(4)(root);
 
   let focus = root;
-  const g = svg.append("g");
+  const g = container.append("g");
+
+  // transparent bg rect — catches zoom-out clicks without needing svg.on()
+  g.append("rect").attr("width", W).attr("height", H).attr("fill", "none").attr("pointer-events", "all")
+    .on("click", () => { if (focus !== root) zoomTo(root); });
 
   // Pass 1 — ALL circles (so labels render on top in SVG z-order)
   const circle = g.selectAll("circle")
@@ -165,8 +223,6 @@ function drawCirclePack(json, W, H) {
     .text(d => d.data.name !== "Total" ? d.data.name : "")
     .style("opacity", d => d.parent === root ? 1 : 0);
 
-  svg.on("click", () => { if (focus !== root) zoomTo(root); });
-
   function zoomTo(v) {
     focus = v;
     const k = Math.min(W, H) / (v.r * 2.2);
@@ -180,11 +236,10 @@ function drawCirclePack(json, W, H) {
 
   exportCanvas(json.config, {root, W, H}, "pack");
 }
-// ════════════════════════════════════════════════════════════════════════════
-// chart_02 Circle Packing
-function drawBarChart(json, W, H) {
-  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
 
+// ════════════════════════════════════════════════════════════════════════════
+// chart_03 Bar Chart
+function drawBarChart(json, W, H, container) {
   const hasParents = json.data.some(d => d.parent);
   const margin = {top: 8, right: 80, bottom: 8, left: 160};
   const w = W - margin.left - margin.right;
@@ -202,13 +257,18 @@ function drawBarChart(json, W, H) {
     json.data.sort((a,b)=>b.value-a.value).forEach(d => rows.push({type:'bar', ...d}));
   }
 
-  const GROUP_H = 22, BAR_H = 26, BAR_PAD = 4;
+  const GROUP_H = 20;
+  const nBars = rows.filter(r => r.type === 'bar').length;
+  const nGroups = rows.filter(r => r.type === 'group').length;
+  const availH = H - margin.top - margin.bottom - nGroups * (GROUP_H + 2);
+  const BAR_H  = Math.max(10, Math.min(26, Math.floor(availH / Math.max(nBars, 1)) - 4));
+  const BAR_PAD = Math.max(2, Math.floor(BAR_H * 0.18));
   let yPos = 0;
   rows.forEach(r => { r._y = yPos; yPos += (r.type==='group' ? GROUP_H + 2 : BAR_H + BAR_PAD); });
 
   const xMax = d3.max(rows.filter(r=>r.type==='bar'), d=>d.value);
   const x = d3.scaleLinear().domain([0, xMax]).range([0, w]);
-  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+  const g = container.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
   rows.filter(r=>r.type==='group').forEach(r => {
     g.append("text").attr("x", -margin.left+4).attr("y", r._y+14)
@@ -240,16 +300,16 @@ function drawBarChart(json, W, H) {
 
   exportCanvas(json.config, {rows, x, margin, BAR_H, GROUP_H, w, W, H}, "bar");
 }
+
 // ════════════════════════════════════════════════════════════════════════════
-// chart_03 Donut 
-function drawDonut(json, W, H) {
-  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
+// chart_04 Donut
+function drawDonut(json, W, H, container) {
   const cx = W/2, cy = H/2;
   const outerR = Math.min(W, H) / 2 - 20;
   const hasParents = json.data.some(d => d.parent);
   const total = d3.sum(json.data, d => d.value);
 
-  const g = svg.append("g").attr("transform", `translate(${cx},${cy})`);
+  const g = container.append("g").attr("transform", `translate(${cx},${cy})`);
 
   const centerName = g.append("text").attr("text-anchor","middle").attr("dy","-0.3em")
     .style("font-size","14px").style("font-weight","700").style("fill","#111").text("Total");
@@ -372,10 +432,10 @@ function drawDonut(json, W, H) {
 
   exportCanvas(json.config, {json, W, H, outerR, hasParents}, "pie");
 }
+
 // ════════════════════════════════════════════════════════════════════════════
-// chart_04 Sun Burst
-function drawSunburst(json, W, H) {
-  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
+// chart_05 Sun Burst
+function drawSunburst(json, W, H, container) {
   const root = buildHierarchy(json.data);
   d3.partition().size([2 * Math.PI, root.height + 1])(root);
   root.each(d => d.current = d);
@@ -391,7 +451,7 @@ function drawSunburst(json, W, H) {
     .innerRadius(d => Math.max(0, d.y0) * radius)
     .outerRadius(d => Math.max(d.y0 * radius, d.y1 * radius - 1));
 
-  const g = svg.append("g").attr("transform", `translate(${W/2},${H/2})`);
+  const g = container.append("g").attr("transform", `translate(${W/2},${H/2})`);
 
   const path = g.selectAll("path")
     .data(root.descendants().filter(d => d.depth))
@@ -423,7 +483,6 @@ function drawSunburst(json, W, H) {
     .style("fill", "rgba(255,255,255,0.85)")
     .text(d => d.value.toFixed(1) + " " + UNIT);
 
-  // Center — click to zoom out
   const center = g.append("circle").attr("r", radius)
     .attr("fill", "none").attr("pointer-events", "all").style("cursor", "pointer")
     .on("click", () => clicked(null, root));
@@ -467,10 +526,10 @@ function drawSunburst(json, W, H) {
 
   exportCanvas(json.config, {root, W, H, radius}, "sunburst");
 }
+
 // ════════════════════════════════════════════════════════════════════════════
-// chart_05 Sankey
-function drawSankey(json, W, H) {
-  svg.selectAll("*").remove(); svg.attr("width", W).attr("height", H);
+// chart_06 Sankey
+function drawSankey(json, W, H, container) {
   const nodeByName = new Map();
   const nodes = [], links = [];
   json.data.forEach(d => {
@@ -484,7 +543,7 @@ function drawSankey(json, W, H) {
   const sankey = d3.sankey().nodeWidth(15).nodePadding(15).extent([[10, 10],[W - 140, H - 20]]);
   const {nodes: sNodes, links: sLinks} = sankey({nodes, links});
 
-  const g = svg.append("g");
+  const g = container.append("g");
   g.selectAll(".link").data(sLinks).enter().append("path").attr("class", "sankey-link")
     .attr("d", d3.sankeyLinkHorizontal()).attr("stroke-width", d => Math.max(1, d.width))
     .attr("stroke", d => color(d.source.name)).attr("fill", "none")
@@ -531,26 +590,36 @@ function exportCanvas(config, layout, type) {
 
   if (type === "treemap") {
     d3.treemap().size([drawW, drawH]).paddingOuter(4*scale).paddingTop(22*scale).paddingInner(2*scale).round(true)(layout.root);
-    (layout.root.children||[]).forEach(d => { ctx.fillStyle='#555'; ctx.font=`bold ${11*fs}px sans-serif`; ctx.fillText(d.data.name.toUpperCase(), d.x0+4*scale, d.y0+14*scale); });
+    // Pass 1: leaf rects
     layout.root.leaves().forEach(d => {
       const w=d.x1-d.x0, h=d.y1-d.y0; if(w<=0||h<=0) return;
       ctx.fillStyle=color(d.parent.data.name!=="Total"?d.parent.data.name:d.data.name);
-      ctx.beginPath(); ctx.roundRect(d.x0,d.y0,w,h,3*scale); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=2*scale; ctx.stroke();
-      if(w>45*scale&&h>25*scale){ ctx.fillStyle='#fff'; ctx.font=`bold ${12*fs}px sans-serif`; ctx.fillText(d.data.name, d.x0+6*scale, d.y0+16*scale); }
-      if(w>60*scale&&h>40*scale){ ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font=`${10*fs}px sans-serif`; ctx.fillText(d.data.value.toFixed(1), d.x0+6*scale, d.y0+32*scale); }
+      ctx.beginPath(); ctx.roundRect(d.x0,d.y0,w,h,3*scale); ctx.fill();
+      ctx.strokeStyle='#fff'; ctx.lineWidth=2*scale; ctx.stroke();
+    });
+    // Pass 2: parent labels on top of rects (positions in canvas px — no *scale)
+    ctx.fillStyle='#555'; ctx.font=`bold ${11*fs}px sans-serif`; ctx.textAlign='left';
+    (layout.root.children||[]).forEach(d => { ctx.fillText(d.data.name.toUpperCase(), d.x0+4, d.y0+14); });
+    // Pass 3: leaf text clipped to each rect (all units = canvas px)
+    layout.root.leaves().forEach(d => {
+      const w=d.x1-d.x0, h=d.y1-d.y0; if(w<48||h<24) return;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(d.x0+2, d.y0+2, Math.max(0,w-4), Math.max(0,h-4)); ctx.clip();
+      ctx.fillStyle='#fff'; ctx.font=`bold ${12*fs}px sans-serif`; ctx.textAlign='left';
+      ctx.fillText(d.data.name, d.x0+5, d.y0+15);
+      if(w>=65&&h>=38){ ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.font=`${10*fs}px sans-serif`; ctx.fillText(d.data.value.toFixed(1), d.x0+5, d.y0+28); }
+      ctx.restore();
     });
   }
   else if (type === "pack") {
     d3.pack().size([drawW, drawH]).padding(3*scale)(layout.root);
-    const MIN_R_NAME = Math.max(drawW, drawH) * 0.08;  //
+    const MIN_R_NAME = Math.max(drawW, drawH) * 0.08;
     const MIN_R_VAL  = MIN_R_NAME * 1.4;
-    // Pass 1: all circles
     layout.root.descendants().slice(1).forEach(d => {
       ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
       ctx.fillStyle = d.children ? "rgba(235,235,235,0.7)" : color(d.parent.data.name!=="Total"?d.parent.data.name:d.data.name);
       ctx.fill(); ctx.strokeStyle = d.children ? "#ddd" : "#fff"; ctx.lineWidth = 2*scale; ctx.stroke();
     });
-    // Pass 2: labels on top, strict threshold
     ctx.textAlign = "center";
     layout.root.descendants().slice(1).forEach(d => {
       if (d.children || d.r < MIN_R_NAME) return;
@@ -591,45 +660,51 @@ function exportCanvas(config, layout, type) {
         .map(([name,ch])=>({name, value:d3.sum(ch,d=>d.value), children:ch.sort((a,b)=>b.value-a.value)}))
         .sort((a,b)=>b.value-a.value);
       const innerPie = d3.pie().value(d=>d.value).sort(null).padAngle(0.025)(groupList);
-
-      // inner arcs (parents)
-      innerPie.forEach(s => {
-        const sa = s.startAngle - Math.PI/2, ea = s.endAngle - Math.PI/2;
-        ctx.beginPath(); ctx.arc(0,0,midR-3,sa,ea); ctx.arc(0,0,innerR,ea,sa,true); ctx.closePath();
-        ctx.fillStyle = color(s.data.name); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2*scale; ctx.stroke();
-        if (s.endAngle - s.startAngle > 0.4) {
-          const mid = (s.startAngle+s.endAngle)/2, r = (innerR+midR-3)/2;
-          ctx.fillStyle='#fff'; ctx.font=`bold ${11*fs}px sans-serif`; ctx.textAlign='center';
-          ctx.fillText(s.data.name, Math.sin(mid)*r, -Math.cos(mid)*r+4*scale);
-        }
-      });
-      // outer arcs (children)
+      // Pass 1: outer arcs
       innerPie.forEach(pSlice => {
         const children = pSlice.data.children;
         const childPie = d3.pie().value(d=>d.value).sort(null)
           .startAngle(pSlice.startAngle+0.012).endAngle(pSlice.endAngle-0.012).padAngle(0.006)(children);
         childPie.forEach((s,i) => {
           const sa = s.startAngle-Math.PI/2, ea = s.endAngle-Math.PI/2;
-          const opacity = 0.45 + (i/Math.max(children.length-1,1))*0.55;
-          ctx.globalAlpha = opacity;
+          ctx.globalAlpha = 0.45 + (i/Math.max(children.length-1,1))*0.55;
           ctx.beginPath(); ctx.arc(0,0,outerR,sa,ea); ctx.arc(0,0,midR+1,ea,sa,true); ctx.closePath();
           ctx.fillStyle = color(pSlice.data.name); ctx.fill();
-          ctx.globalAlpha = 1;
-          ctx.strokeStyle='#fff'; ctx.lineWidth=scale; ctx.stroke();
+          ctx.globalAlpha = 1; ctx.strokeStyle='#fff'; ctx.lineWidth=scale; ctx.stroke();
         });
+      });
+      // Pass 2: inner arcs on top
+      innerPie.forEach(s => {
+        const sa = s.startAngle - Math.PI/2, ea = s.endAngle - Math.PI/2;
+        ctx.beginPath(); ctx.arc(0,0,midR-3,sa,ea); ctx.arc(0,0,innerR,ea,sa,true); ctx.closePath();
+        ctx.fillStyle = color(s.data.name); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2*scale; ctx.stroke();
+      });
+      // Pass 3: inner labels on top of all arcs
+      innerPie.forEach(s => {
+        if (s.endAngle - s.startAngle <= 0.4) return;
+        const mid = (s.startAngle+s.endAngle)/2, r = (innerR+midR-3)/2;
+        ctx.fillStyle='#fff'; ctx.font=`bold ${11*fs}px sans-serif`; ctx.textAlign='center';
+        ctx.fillText(s.data.name, Math.sin(mid)*r, -Math.cos(mid)*r+4*scale);
       });
     } else {
       const innerR = outerR*0.45;
       const pie = d3.pie().value(d=>d.value).sort(null)(layout.json.data.sort((a,b)=>b.value-a.value));
+      // Pass 1: all arcs
       pie.forEach(s => {
         const sa = s.startAngle-Math.PI/2, ea = s.endAngle-Math.PI/2;
         ctx.beginPath(); ctx.arc(0,0,outerR,sa,ea); ctx.arc(0,0,innerR,ea,sa,true); ctx.closePath();
         ctx.fillStyle = color(s.data.name); ctx.fill();
         ctx.strokeStyle='#fff'; ctx.lineWidth=2*scale; ctx.stroke();
       });
+      // Pass 2: slice labels on top
+      pie.forEach(s => {
+        if (s.endAngle - s.startAngle <= 0.25) return;
+        const mid = (s.startAngle+s.endAngle)/2, r = (innerR+outerR)/2;
+        ctx.fillStyle='#fff'; ctx.font=`bold ${11*fs}px sans-serif`; ctx.textAlign='center';
+        ctx.fillText(s.data.name, Math.sin(mid)*r, -Math.cos(mid)*r+4*scale);
+      });
     }
-    // center text styling
     ctx.fillStyle='#111'; ctx.font=`bold ${14*fs}px sans-serif`; ctx.textAlign='center';
     ctx.fillText("Total", 0, -4*scale);
     ctx.fillStyle='#666'; ctx.font=`${12*fs}px sans-serif`;
@@ -652,7 +727,7 @@ function exportCanvas(config, layout, type) {
       ctx.globalAlpha = d.children ? 0.6 : 0.9; ctx.fill(); ctx.globalAlpha = 1;
       ctx.strokeStyle = '#fff'; ctx.lineWidth = scale; ctx.stroke();
       const span = (d.x1 - d.x0) * (d.y0 + d.y1) / 2 * r;
-      if (span > 38) { 
+      if (span > 38) {
         const angle = (d.x0 + d.x1) / 2, midR = (d.y0 + d.y1) / 2 * r;
         ctx.save();
         ctx.rotate(angle - Math.PI / 2); ctx.translate(midR, 0);
@@ -694,7 +769,8 @@ function exportCanvas(config, layout, type) {
     ctx.restore();
   }
 
-  canvas.toBlob(blob => fetch('/screenshot', { method: 'POST', body: blob }).catch(()=>{}));
+  const _port = window.__GH_PORT || location.port || 8080;
+  canvas.toBlob(blob => fetch(`http://127.0.0.1:${_port}/screenshot`, { method: 'POST', body: blob }).catch(()=>{}));
 }
 
 poll();

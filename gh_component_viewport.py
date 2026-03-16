@@ -22,10 +22,17 @@ import System.IO
 import System
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-SERVE_DIR   = r"D:\00_HS\GSS24\code\New folder\datacharts\mvp"
+SERVE_DIR   = r"C:\Users\Dell\Documents\GitHub\data_muncher"
 OUTPUT_JSON = os.path.join(SERVE_DIR, "gh_dashboard.json")
-PORT        = 8080
-URL         = "http://localhost:{}".format(PORT)
+
+# pick a free port once per session, reuse it across GH solves
+if "GH_VP_PORT" not in sc.sticky:
+    import socket as _sock
+    with _sock.socket() as _s:
+        _s.bind(('', 0))
+        sc.sticky["GH_VP_PORT"] = _s.getsockname()[1]
+PORT = sc.sticky["GH_VP_PORT"]
+URL  = "http://127.0.0.1:{}".format(PORT)
 
 out = "starting..."
 
@@ -67,15 +74,22 @@ try:
                 super().end_headers()
             def log_message(self, *a): pass
 
-        threading.Thread(target=lambda: HTTPServer(("", PORT), _H).serve_forever(), daemon=True).start()
+        threading.Thread(target=lambda: HTTPServer(("127.0.0.1", PORT), _H).serve_forever(), daemon=True).start()
 
         import Eto.Forms as ef, Eto.Drawing as ed
         _wv           = ef.WebView()
-        _wv.Url       = System.Uri(URL)
         _form         = ef.Form()
         _form.Title   = "GH Dashboard"
         _form.Size    = ed.Size(1100, 750)
         _form.Content = _wv
+
+        # inject the port after every page load so JS knows where to POST
+        def _on_loaded(sender, e):
+            try: _wv.ExecuteScript("window.__GH_PORT={}".format(PORT))
+            except: pass
+        _wv.DocumentLoaded += _on_loaded
+
+        _wv.Url = System.Uri(URL)
         _form.Show()
 
         sc.sticky["GH_VP_STARTED"] = True
@@ -108,22 +122,18 @@ try:
         Rhino.RhinoApp.Idle += _idle
         sc.sticky["GH_VP_IDLE"] = _idle
 
-    # handler
-    if "GH_VP_CH" in sc.sticky:
-        try:    rd.DisplayPipeline.DrawForeground -= sc.sticky["GH_VP_CH"]
-        except: pass
-        del sc.sticky["GH_VP_CH"]
+    # handler — register once only; reads position/enabled from sticky dynamically
+    if "GH_VP_CH" not in sc.sticky:
+        def _draw(sender, e):
+            if not sc.sticky.get("GH_VP_ENABLED", True): return
+            try:
+                bmp = sc.sticky.get("GH_VP_BMP")
+                if bmp: e.Display.DrawBitmap(bmp, sc.sticky.get("GH_VP_X", 20), sc.sticky.get("GH_VP_Y", 60))
+            except Exception as ex:
+                sc.sticky["GH_VP_ERR"] = str(ex)
 
-    def _draw(sender, e):
-        if not sc.sticky.get("GH_VP_ENABLED", True): return
-        try:
-            bmp = sc.sticky.get("GH_VP_BMP")
-            if bmp: e.Display.DrawBitmap(bmp, sc.sticky.get("GH_VP_X", 20), sc.sticky.get("GH_VP_Y", 60))
-        except Exception as ex:
-            sc.sticky["GH_VP_ERR"] = str(ex)
-
-    rd.DisplayPipeline.DrawForeground += _draw
-    sc.sticky["GH_VP_CH"] = _draw
+        rd.DisplayPipeline.DrawForeground += _draw
+        sc.sticky["GH_VP_CH"] = _draw
 
     #json making
     if _names and _values and len(_names) == len(_values):
