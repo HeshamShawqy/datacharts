@@ -56,7 +56,8 @@ The architecture is deliberately lightweight. No cloud. No external dependencies
 2. Open the `.gh` file in Rhino 8 + Grasshopper
 3. Connect your data (names, values, parents lists) to the GhPython component
 4. **Update the file paths** inside `gh_component_viewport.py` — specifically `SERVE_DIR` to point to your local clone directory
-5. Set `enable` to `True` and run
+5. Reset Rhino if needed
+6. Set `enable` to `True` and run
 
 The Eto panel will open automatically and the dashboard will appear. If you just want to test with sample data, the repo includes `gh_dashboard.json` with a working dataset - open `index.html` directly in a browser to see it render.
 
