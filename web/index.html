@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GH Dashboard</title>
+<script src="d3.min.js"></script>
+<script src="d3-sankey.min.js"></script>
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #333; height: 100vh; display: flex; flex-direction: column;
+  }
+  #chart-wrap { flex: 1; min-height: 0; position: relative; }
+  svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+  .node rect { stroke: #fff; stroke-width: 2px; transition: opacity 0.2s; cursor: pointer; }
+  .node rect:hover { opacity: 0.7; }
+  .node text { pointer-events: none; }
+  .parent-label { font-size: 11px; font-weight: bold; fill: #555; text-transform: uppercase; letter-spacing: 0.05em; }
+  .sankey-link { fill: none; stroke-opacity: 0.3; transition: stroke-opacity 0.2s; cursor: pointer; }
+  .sankey-link:hover { stroke-opacity: 0.6; }
+
+  #tooltip {
+    position: absolute; background: rgba(255,255,255,0.95); border: 1px solid #ddd;
+    padding: 8px 12px; border-radius: 4px; pointer-events: none; opacity: 0;
+    font-size: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000;
+  }
+  .tt-name { font-weight: 700; color: #111; margin-bottom: 2px; }
+  .tt-val  { color: #555; font-size: 11px; }
+  #err-overlay {
+    display: none; position: fixed; top: 8px; left: 8px; right: 8px;
+    background: #fff0f0; border: 1px solid #f88; border-radius: 4px;
+    padding: 8px 12px; font-size: 11px; color: #900; z-index: 9999;
+    white-space: pre-wrap; word-break: break-all;
+  }
+</style>
+</head>
+<body>
+
+<div id="chart-wrap">
+  <svg id="chart"></svg>
+</div>
+<div id="err-overlay"></div>
+
+<script>
+window.onerror = function(msg, src, line) {
+  var el = document.getElementById("err-overlay");
+  if (el) { el.style.display = "block"; el.textContent = "JS error: " + msg + " (line " + line + ")"; }
+};
+const DATA_FILE = "gh_dashboard.json";
+const POLL_MS   = 500;
+const color     = d3.scaleOrdinal(d3.schemeTableau10);
+let UNIT        = "m²";
+let fontScale   = 1.0;
+function sz(px) { return (px * fontScale) + "px"; }
+
+let lastUpdated   = null;
+let lastChartType = null;
+let activeGroup   = null;
+let placeholderOn = false;
+
+const svg     = d3.select("#chart");
+const tooltip = d3.select("body").append("div").attr("id", "tooltip");
+
+const PLACEHOLDER = {
+  updated: null,
+  config: { type: "treemap", title: "Data Muncher", subtitle: "Connect data in Grasshopper", units: "—", w: 500, font_scale: 1.0 },
+  data: [
+    { name: "Item A", value: 4, parent: "Group 1" },
+    { name: "Item B", value: 3, parent: "Group 1" },
+    { name: "Item C", value: 5, parent: "Group 2" },
+    { name: "Item D", value: 2, parent: "Group 2" },
+    { name: "Item E", value: 3, parent: "Group 3" },
+  ]
+};
+
+// ── zoom ──────────────────────────────────────────────────────────────────────
+const zoomGroup = svg.append("g").attr("class", "zoom-root");
+const zoom = d3.zoom()
+  .scaleExtent([0.05, 10])
+  .on("zoom", e => zoomGroup.attr("transform", e.transform.toString()));
+svg.call(zoom).on("dblclick.zoom", null);
+svg.on("dblclick", () => svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity));
+
+// ── tooltip ───────────────────────────────────────────────────────────────────
+function showTT(e, name, val, group) {
+  const g = (group && group !== "Total" && group !== name) ? `<div class="tt-val">Group: ${group}</div>` : '';
+  tooltip.style("opacity", 1).html(`<div class="tt-name">${name}</div><div class="tt-val">${val.toFixed(1)} ${UNIT}</div>${g}`);
+  moveTT(e);
+}
+function moveTT(e) {
+  let l = e.pageX + 15, t = e.pageY - 15;
+  if (l + 150 > window.innerWidth) l = e.pageX - 165;
+  tooltip.style("left", l + "px").style("top", t + "px");
+}
+function hideTT() { tooltip.style("opacity", 0); }
+
+// ── renderer ──────────────────────────────────────────────────────────────────
+const DATA_JOIN_TYPES = new Set(["bar", "treemap", "pie", "sunburst", "sankey"]);
+
+function renderChart(json, W, H) {
+  svg.attr("width", W).attr("height", H);
+  fontScale = json.config.font_scale || 1.0;
+  UNIT = json.config.units || "m²";
+  const cats = [...new Set(json.data.map(d => d.parent).filter(Boolean))];
+  color.domain(cats.length ? cats : [...new Set(json.data.map(d => d.name))]);
+
+  const type = json.config.type;
+  const typeChanged = type !== lastChartType;
+  if (typeChanged) { lastChartType = type; svg.call(zoom.transform, d3.zoomIdentity); }
+
+  if (!typeChanged && activeGroup && DATA_JOIN_TYPES.has(type)) {
+    dispatchDraw(type, json, W, H, activeGroup);
+    return;
+  }
+
+  const old = activeGroup;
+  const ng  = zoomGroup.append("g").attr("class", "chart-layer").style("opacity", 0);
+  activeGroup = ng;
+  dispatchDraw(type, json, W, H, ng);
+  ng.transition().duration(400).ease(d3.easeCubicOut).style("opacity", 1);
+  if (old) old.transition().duration(300).style("opacity", 0).on("end", function() { d3.select(this).remove(); });
+}
+
+function dispatchDraw(type, json, W, H, g) {
+  if      (type === "bar")      drawBarChart(json, W, H, g);
+  else if (type === "pie")      drawDonut(json, W, H, g);
+  else if (type === "sankey")   drawSankey(json, W, H, g);
+  else if (type === "sunburst") drawSunburst(json, W, H, g);
+  else                          drawTreemap(json, W, H, g);
+}
+
+// ── screenshot (SVG → canvas → POST) ─────────────────────────────────────────
+// Replaces the old exportCanvas dual-render approach. Serialises the live SVG,
+// strips the user's zoom transform so the overlay always shows the full chart.
+let _shotTimer = null;
+function scheduleScreenshot(config) {
+  clearTimeout(_shotTimer);
+  _shotTimer = setTimeout(() => {
+    const el = document.getElementById("chart");
+    const W  = el.clientWidth  || 800;
+    const H  = el.clientHeight || 600;
+    const ew = config.w || 500;
+
+    const clone = el.cloneNode(true);
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clone.setAttribute("width",  W);
+    clone.setAttribute("height", H);
+
+    // Reset zoom so the overlay always shows the full chart
+    const zr = clone.querySelector(".zoom-root");
+    if (zr) zr.removeAttribute("transform");
+
+    // Inject page CSS so CSS-class styles survive serialisation
+    const sty = document.createElementNS("http://www.w3.org/2000/svg", "style");
+    const cssRules = [];
+    for (var si = 0; si < document.styleSheets.length; si++) {
+      try {
+        var rules = document.styleSheets[si].cssRules;
+        for (var ri = 0; ri < rules.length; ri++) cssRules.push(rules[ri].cssText);
+      } catch(e) { /* cross-origin sheet */ }
+    }
+    sty.textContent = cssRules.join("\n");
+    clone.insertBefore(sty, clone.firstChild);
+
+    // Inline font-family on every text/tspan so canvas rendering matches the browser
+    const FONT_FAMILY = "'Segoe UI', Helvetica, Arial, sans-serif";
+    clone.querySelectorAll("text, tspan").forEach(function(t) {
+      t.setAttribute("font-family", FONT_FAMILY);
+    });
+    // Also push the rule into the injected stylesheet as a belt-and-braces fallback
+    sty.textContent += "\ntext, tspan { font-family: " + FONT_FAMILY + "; }";
+
+    const url = URL.createObjectURL(
+      new Blob([new XMLSerializer().serializeToString(clone)], { type: "image/svg+xml;charset=utf-8" })
+    );
+    const eh  = Math.round(H * ew / W);
+    const dpr = window.devicePixelRatio || 2;
+    const canvas = document.createElement("canvas");
+    canvas.width  = ew * dpr;
+    canvas.height = eh * dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    // No fillRect → transparent PNG (no white box in the Rhino viewport)
+
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, ew, eh);
+      URL.revokeObjectURL(url);
+      const port = window.__GH_PORT || location.port || 8080;
+      canvas.toBlob(b => fetch(`http://127.0.0.1:${port}/screenshot`, { method: "POST", body: b }).catch(() => {}), "image/png");
+    };
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+  }, 700);
+}
+
+// ── poll ──────────────────────────────────────────────────────────────────────
+async function poll() {
+  try {
+    const res = await fetch(DATA_FILE + "?t=" + Date.now());
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const json = await res.json();
+    if (!json.data || !Array.isArray(json.data)) return;
+    const clean = json.data.filter(d => d.name != null && d.name !== "" && +d.value > 0);
+    if (!clean.length) return;
+    json.data = clean;
+    if (json.updated !== lastUpdated) {
+      lastUpdated = json.updated;
+      const wrap = document.getElementById("chart-wrap");
+      let W = wrap.clientWidth, H = wrap.clientHeight;
+      if (!W || !H || W < 100 || H < 100) { W = 800; H = 600; }
+      renderChart(json, W, H);
+    }
+  } catch(e) {
+    if (!placeholderOn && lastUpdated === null) {
+      placeholderOn = true;
+      const wrap = document.getElementById("chart-wrap");
+      renderChart(PLACEHOLDER, wrap.clientWidth || 800, wrap.clientHeight || 600);
+    }
+  }
+}
+
+// ── hierarchy helper ──────────────────────────────────────────────────────────
+function buildHierarchy(data) {
+  const hasParents = data.some(d => d.parent);
+  if (!hasParents)
+    return d3.hierarchy({ name: "Total", children: data }).sum(d => d.value).sort((a,b) => b.value - a.value);
+  const childNames = new Set(data.map(d => d.name));
+  const missing = [...new Set(data.map(d => d.parent).filter(Boolean))].filter(p => !childNames.has(p));
+  const all = [
+    { name: "Total", parent: null },
+    ...missing.map(p => ({ name: p, parent: "Total" })),
+    ...data.map(d => ({ ...d, parent: d.parent || "Total" }))
+  ];
+  return d3.stratify().id(d => d.name).parentId(d => d.parent)(all)
+    .sum(d => d.value).sort((a,b) => b.value - a.value);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// chart_01  Treemap
+// ════════════════════════════════════════════════════════════════════════════
+function drawTreemap(json, W, H, container) {
+  const root = buildHierarchy(json.data);
+  d3.treemap().size([W, H]).paddingOuter(4).paddingTop(22).paddingInner(2).round(true)(root);
+  const T = 600;
+
+  const nodes = container.selectAll(".node").data(root.leaves(), d => d.data.name);
+  nodes.exit().transition("data").duration(T/2).style("opacity", 0).remove();
+
+  const nodesE = nodes.enter().append("g").attr("class", "node").style("opacity", 0)
+    .attr("transform", d => `translate(${d.x0},${d.y0})`);
+  nodesE.append("rect").attr("rx", 3).attr("stroke", "#fff").attr("stroke-width", "2px")
+    .on("mouseover", (e, d) => showTT(e, d.data.name, d.value, d.parent ? d.parent.data.name : ""))
+    .on("mousemove", moveTT).on("mouseout", hideTT);
+
+  const nodesM = nodesE.merge(nodes);
+  nodesM.transition("data").duration(T).ease(d3.easeCubicOut)
+    .style("opacity", 1).attr("transform", d => `translate(${d.x0},${d.y0})`);
+  nodesM.select("rect").transition("data").duration(T).ease(d3.easeCubicOut)
+    .attr("width",  d => Math.max(0, d.x1 - d.x0))
+    .attr("height", d => Math.max(0, d.y1 - d.y0))
+    .attr("fill",   d => color(d.parent.data.name !== "Total" ? d.parent.data.name : d.data.name));
+
+  nodesM.selectAll("clipPath, .cell-text").remove();
+  nodesM.each(function(d) {
+    const w = d.x1 - d.x0, h = d.y1 - d.y0, el = d3.select(this);
+    if (w <= 0 || h <= 0) return;
+    const uid = "tm-" + d.data.name.replace(/\W/g, "_");
+    el.append("clipPath").attr("id", uid).append("rect")
+      .attr("x", 2).attr("y", 2).attr("width", Math.max(0, w-4)).attr("height", Math.max(0, h-4));
+    const tg = el.append("g").attr("class", "cell-text").attr("clip-path", `url(#${uid})`);
+    if (w > 45 && h > 25) tg.append("text").attr("x", 8).attr("y", 18)
+      .style("font-size", sz(12)).style("font-weight", "600").style("fill", "#fff").text(d.data.name);
+    if (w > 60 && h > 40) tg.append("text").attr("x", 8).attr("y", 34)
+      .style("font-size", sz(10)).style("fill", "rgba(255,255,255,0.8)").text(d.value.toFixed(1));
+  });
+
+  const pLabels = container.selectAll(".plabel").data(root.children || [], d => d.data.name);
+  pLabels.exit().transition("data").duration(T/2).style("opacity", 0).remove();
+  pLabels.enter().append("text").attr("class", "plabel parent-label").style("opacity", 0)
+    .merge(pLabels).transition("data").duration(T)
+    .style("opacity", 1).style("font-size", sz(11))
+    .attr("x", d => d.x0 + 4).attr("y", d => d.y0 + 14).text(d => d.data.name);
+
+  scheduleScreenshot(json.config);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// chart_02  Bar Chart
+// ════════════════════════════════════════════════════════════════════════════
+function drawBarChart(json, W, H, container) {
+  const hasParents = json.data.some(d => d.parent);
+  const margin = { top: 8, right: 80, bottom: 8, left: 160 };
+  const w = W - margin.left - margin.right;
+
+  const nameHasChildren = new Set(json.data.filter(d => d.parent).map(d => d.parent));
+  const isDepth3 = hasParents && json.data.some(d => d.parent && nameHasChildren.has(d.name));
+
+  let rows = [];
+  if (isDepth3) {
+    const root = buildHierarchy(json.data);
+    (root.children || []).sort((a,b) => b.value - a.value).forEach(l1 => {
+      rows.push({ type: "group", name: l1.data.name, total: l1.value });
+      (l1.children || []).sort((a,b) => b.value - a.value).forEach(l2 => {
+        rows.push({ type: "subgroup", name: l2.data.name, total: l2.value, parent: l1.data.name });
+        l2.leaves().sort((a,b) => b.value - a.value).forEach(leaf =>
+          rows.push({ type: "bar", name: leaf.data.name, value: leaf.value, parent: l1.data.name, subparent: l2.data.name })
+        );
+      });
+    });
+  } else if (hasParents) {
+    const leafData = json.data.filter(d => !nameHasChildren.has(d.name) && +d.value > 0);
+    const groups = d3.group(leafData, d => d.parent || "Other");
+    [...groups.entries()]
+      .sort((a,b) => d3.sum(b[1], d=>d.value) - d3.sum(a[1], d=>d.value))
+      .forEach(([parent, children]) => {
+        rows.push({ type: "group", name: parent, total: d3.sum(children, d=>d.value) });
+        children.sort((a,b) => b.value - a.value).forEach(d => rows.push({ type: "bar", ...d }));
+      });
+  } else {
+    json.data.filter(d => +d.value > 0).sort((a,b) => b.value - a.value)
+      .forEach(d => rows.push({ type: "bar", ...d }));
+  }
+
+  const GROUP_H = 20, SUBGROUP_H = 16;
+  const nBars      = rows.filter(r => r.type === "bar").length;
+  const nGroups    = rows.filter(r => r.type === "group").length;
+  const nSubgroups = rows.filter(r => r.type === "subgroup").length;
+  const availH = H - margin.top - margin.bottom - nGroups * (GROUP_H + 2) - nSubgroups * (SUBGROUP_H + 2);
+  const BAR_H  = Math.max(10, Math.min(26, Math.floor(availH / Math.max(nBars, 1)) - 4));
+  const BAR_PAD = Math.max(2, Math.floor(BAR_H * 0.18));
+  let yPos = 0;
+  rows.forEach(r => {
+    r._y = yPos;
+    yPos += r.type === "group" ? GROUP_H + 2 : r.type === "subgroup" ? SUBGROUP_H + 2 : BAR_H + BAR_PAD;
+  });
+
+  const xMax = d3.max(rows.filter(r => r.type === "bar"), d => d.value);
+  const x = d3.scaleLinear().domain([0, xMax]).range([0, w]);
+  const T = 600;
+
+  let g = container.select("g.bar-inner");
+  if (g.empty()) g = container.append("g").attr("class", "bar-inner")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  const barData = rows.filter(r => r.type === "bar");
+  const grpData = rows.filter(r => r.type === "group");
+
+  // group headers
+  const gh = g.selectAll(".group-header").data(grpData, d => d.name);
+  gh.exit().transition("data").duration(T/2).style("opacity", 0).remove();
+  const ghE = gh.enter().append("g").attr("class", "group-header").style("opacity", 0);
+  ghE.append("text").style("font-size", sz(11)).style("font-weight", "700").style("letter-spacing", "0.06em");
+  ghE.append("line").attr("stroke-width", 1).attr("opacity", 0.25);
+  const ghM = ghE.merge(gh);
+  ghM.transition("data").duration(T).style("opacity", 1);
+  ghM.select("text").transition("data").duration(T)
+    .attr("x", -margin.left+4).attr("y", d => d._y+14)
+    .style("fill", d => color(d.name)).style("font-size", sz(11))
+    .text(d => d.name.toUpperCase());
+  ghM.select("line").transition("data").duration(T)
+    .attr("x1", -margin.left+4).attr("x2", w)
+    .attr("y1", d => d._y+18).attr("y2", d => d._y+18).attr("stroke", d => color(d.name));
+
+  // subgroup headers
+  const sghData = rows.filter(r => r.type === "subgroup");
+  const sgh = g.selectAll(".subgroup-header").data(sghData, d => d.parent + "›" + d.name);
+  sgh.exit().transition("data").duration(T/2).style("opacity", 0).remove();
+  const sghE = sgh.enter().append("g").attr("class", "subgroup-header").style("opacity", 0);
+  sghE.append("text").style("font-size", sz(10)).style("font-weight", "600").style("letter-spacing", "0.03em");
+  sghE.append("line").attr("stroke-width", 1).attr("opacity", 0.2);
+  const sghM = sghE.merge(sgh);
+  sghM.transition("data").duration(T).style("opacity", 1);
+  sghM.select("text").transition("data").duration(T)
+    .attr("x", -margin.left+20).attr("y", d => d._y+11)
+    .style("fill", d => color(d.parent)).style("font-size", sz(10)).text(d => d.name);
+  sghM.select("line").transition("data").duration(T)
+    .attr("x1", -margin.left+20).attr("x2", w)
+    .attr("y1", d => d._y+14).attr("y2", d => d._y+14).attr("stroke", d => color(d.parent));
+
+  // bars
+  const bars = g.selectAll(".bar").data(barData, d => d.name);
+  bars.exit().transition("data").duration(T/2).attr("width", 0).style("opacity", 0).remove();
+  bars.enter().append("rect").attr("class", "bar")
+    .attr("x", 0).attr("width", 0).attr("rx", 2)
+    .attr("height", BAR_H).attr("y", d => d._y)
+    .on("mouseover", function(e,d) { d3.select(this).transition("hover").duration(100).attr("opacity", 0.75); showTT(e, d.name, d.value, d.parent); })
+    .on("mousemove", moveTT)
+    .on("mouseout",  function()    { d3.select(this).transition("hover").duration(150).attr("opacity", 1); hideTT(); })
+  .merge(bars).transition("data").duration(T).ease(d3.easeCubicOut)
+    .attr("y", d => d._y).attr("height", BAR_H)
+    .attr("width", d => x(d.value)).attr("fill", d => color(d.parent || d.name));
+
+  // name labels
+  const names = g.selectAll(".label-name").data(barData, d => d.name);
+  names.exit().transition("data").duration(T/2).style("opacity", 0).remove();
+  names.enter().append("text").attr("class", "label-name")
+    .attr("text-anchor", "end").style("font-size", sz(12)).style("font-weight", "600").style("opacity", 0)
+  .merge(names).transition("data").duration(T)
+    .attr("x", -10).attr("y", d => d._y + BAR_H/2 + 4).style("font-size", sz(12)).style("opacity", 1).text(d => d.name);
+
+  // value labels
+  const vals = g.selectAll(".label-val").data(barData, d => d.name);
+  vals.exit().transition("data").duration(T/2).style("opacity", 0).remove();
+  vals.enter().append("text").attr("class", "label-val")
+    .style("font-size", sz(11)).style("fill", "#666").style("opacity", 0)
+  .merge(vals).transition("data").duration(T).ease(d3.easeCubicOut)
+    .attr("x", d => x(d.value) + 8).attr("y", d => d._y + BAR_H/2 + 4)
+    .style("font-size", sz(11)).style("opacity", 1).text(d => d.value.toFixed(1));
+
+  scheduleScreenshot(json.config);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// chart_03  Donut / Pie
+// ════════════════════════════════════════════════════════════════════════════
+function drawDonut(json, W, H, container) {
+  const cx = W/2, cy = H/2;
+  const outerR = Math.min(W, H) / 2 - 20;
+  const hasParents = json.data.some(d => d.parent);
+  const total = d3.sum(json.data, d => d.value);
+  const T = 700;
+
+  let g = container.select("g.donut-inner");
+  if (g.empty()) g = container.append("g").attr("class", "donut-inner")
+    .attr("transform", `translate(${cx},${cy})`);
+
+  let centerName = g.select(".dn-cname");
+  let centerVal  = g.select(".dn-cval");
+  if (centerName.empty()) {
+    centerName = g.append("text").attr("class", "dn-cname").attr("text-anchor", "middle").attr("dy", "-0.3em")
+      .style("font-weight", "700").style("fill", "#111");
+    centerVal = g.append("text").attr("class", "dn-cval").attr("text-anchor", "middle").attr("dy", "1.1em")
+      .style("fill", "#666");
+  }
+  centerName.style("font-size", sz(14)).text("Total");
+  centerVal.style("font-size", sz(12)).text(total.toFixed(1) + " " + UNIT);
+  function resetCenter() { centerName.text("Total"); centerVal.text(total.toFixed(1) + " " + UNIT); }
+
+  const nameHasCh  = new Set(json.data.filter(d => d.parent).map(d => d.parent));
+  const hier3      = buildHierarchy(json.data);
+  const isDepth3   = hier3.height >= 3;
+
+  if (hasParents) { g.selectAll(".slice, .slice-lbl").remove(); }
+  else            { g.selectAll(".i-arc, .o-arc, .r1-arc, .r2-arc, .r3-arc, .ring-lbl, .ring3-lbl").remove(); }
+
+  if (hasParents && isDepth3) {
+    g.selectAll(".i-arc, .o-arc, .ring-lbl").remove();
+    const r1in = outerR*0.18, r1out = outerR*0.38, r2in = outerR*0.41, r2out = outerR*0.63, r3in = outerR*0.66;
+    const arcR1 = d3.arc().innerRadius(r1in).outerRadius(r1out-2).cornerRadius(2).padAngle(0.025);
+    const arcR2 = d3.arc().innerRadius(r2in+2).outerRadius(r2out-2).cornerRadius(2).padAngle(0.006);
+    const arcR3 = d3.arc().innerRadius(r3in+2).outerRadius(outerR).cornerRadius(2).padAngle(0.004);
+    const l1nodes = hier3.children || [];
+    const l1pie   = d3.pie().value(d => d.value).sort(null).padAngle(0.025)(l1nodes);
+    const allL2 = [], allL3 = [];
+    l1pie.forEach(ps => {
+      const l2nodes = ps.data.children || [];
+      const l2pie = d3.pie().value(d => d.value).sort(null)
+        .startAngle(ps.startAngle+0.012).endAngle(ps.endAngle-0.012).padAngle(0.005)(l2nodes);
+      l2pie.forEach(l2s => {
+        allL2.push({ ...l2s, _l1Name: ps.data.data.name });
+        d3.pie().value(d => d.value).sort(null)
+          .startAngle(l2s.startAngle+0.005).endAngle(l2s.endAngle-0.005).padAngle(0.003)(l2s.data.children || [])
+          .forEach((l3s, i, arr) => allL3.push({ ...l3s, _l1Name: ps.data.data.name, _l2Name: l2s.data.data.name, _i: i, _n: arr.length }));
+      });
+    });
+    const r1a = g.selectAll(".r1-arc").data(l1pie, d => d.data.data.name);
+    r1a.exit().transition("data").duration(T/2).style("opacity", 0).remove();
+    r1a.enter().append("path").attr("class", "r1-arc").attr("stroke","#fff").attr("stroke-width",2).style("cursor","pointer")
+      .each(function(d) { this.__prev = { startAngle: d.startAngle, endAngle: d.startAngle }; })
+      .on("mouseover", function(e,d) { d3.select(this).transition("hover").duration(100).attr("transform","scale(1.05)"); centerName.text(d.data.data.name); centerVal.text(d.data.value.toFixed(1)+" "+UNIT); showTT(e,d.data.data.name,d.data.value,""); })
+      .on("mousemove", moveTT).on("mouseout", function() { d3.select(this).transition("hover").duration(150).attr("transform","scale(1)"); resetCenter(); hideTT(); })
+    .merge(r1a).transition("data").duration(T).ease(d3.easeCubicOut)
+      .attrTween("d", function(d) { const i=d3.interpolate(this.__prev||d,d); this.__prev={...d}; return t=>arcR1(i(t)); })
+      .attr("fill", d => color(d.data.data.name));
+    const r2a = g.selectAll(".r2-arc").data(allL2, d => d.data.data.name);
+    r2a.exit().transition("data").duration(T/2).style("opacity", 0).remove();
+    r2a.enter().append("path").attr("class", "r2-arc").attr("stroke","#fff").attr("stroke-width",1.5).style("cursor","pointer")
+      .each(function(d) { this.__prev = { startAngle: d.startAngle, endAngle: d.startAngle }; })
+      .on("mouseover", function(e,d) { d3.select(this).transition("hover").duration(100).attr("transform","scale(1.04)"); centerName.text(d.data.data.name); centerVal.text(d.data.value.toFixed(1)+" "+UNIT); showTT(e,d.data.data.name,d.data.value,d._l1Name); })
+      .on("mousemove", moveTT).on("mouseout", function() { d3.select(this).transition("hover").duration(150).attr("transform","scale(1)"); resetCenter(); hideTT(); })
+    .merge(r2a).transition("data").duration(T).ease(d3.easeCubicOut)
+      .attrTween("d", function(d) { const i=d3.interpolate(this.__prev||d,d); this.__prev={...d}; return t=>arcR2(i(t)); })
+      .attr("fill", d => color(d._l1Name)).attr("opacity", 0.75);
+    const r3a = g.selectAll(".r3-arc").data(allL3, d => d.data.data.name);
+    r3a.exit().transition("data").duration(T/2).style("opacity", 0).remove();
+    r3a.enter().append("path").attr("class", "r3-arc").attr("stroke","#fff").attr("stroke-width",1).style("cursor","pointer")
+      .each(function(d) { this.__prev = { startAngle: d.startAngle, endAngle: d.startAngle }; })
+      .on("mouseover", function(e,d) { d3.select(this).transition("hover").duration(100).attr("transform","scale(1.03)"); centerName.text(d.data.data.name); centerVal.text(d.data.value.toFixed(1)+" "+UNIT); showTT(e,d.data.data.name,d.data.value,d._l1Name+" › "+d._l2Name); })
+      .on("mousemove", moveTT).on("mouseout", function() { d3.select(this).transition("hover").duration(150).attr("transform","scale(1)"); resetCenter(); hideTT(); })
+    .merge(r3a).transition("data").duration(T).ease(d3.easeCubicOut)
+      .attrTween("d", function(d) { const i=d3.interpolate(this.__prev||d,d); this.__prev={...d}; return t=>arcR3(i(t)); })
+      .attr("fill", d => color(d._l1Name)).attr("opacity", d => 0.40 + (d._i/Math.max(d._n-1,1))*0.60);
+    g.selectAll(".ring3-lbl").remove();
+    l1pie.forEach(s => {
+      if (s.endAngle - s.startAngle < 0.18) return;
+      const mid=(s.startAngle+s.endAngle)/2, r=(r1in+r1out-2)/2;
+      const t=g.append("text").attr("class","ring3-lbl").attr("transform",`translate(${Math.sin(mid)*r},${-Math.cos(mid)*r})`).attr("text-anchor","middle").style("pointer-events","none");
+      t.append("tspan").attr("x",0).attr("dy",s.endAngle-s.startAngle>0.35?"-0.4em":"0.35em").style("font-size",sz(10)).style("font-weight","700").style("fill","#fff").text(s.data.data.name);
+      if (s.endAngle-s.startAngle>0.35) t.append("tspan").attr("x",0).attr("dy","1.3em").style("font-size",sz(9)).style("fill","rgba(255,255,255,0.85)").text(s.data.value.toFixed(1)+" "+UNIT);
+    });
+    allL2.forEach(s => {
+      if (s.endAngle-s.startAngle<0.14) return;
+      const mid=(s.startAngle+s.endAngle)/2, r=(r2in+2+r2out-2)/2;
+      const t=g.append("text").attr("class","ring3-lbl").attr("transform",`translate(${Math.sin(mid)*r},${-Math.cos(mid)*r})`).attr("text-anchor","middle").style("pointer-events","none");
+      t.append("tspan").attr("x",0).attr("dy",s.endAngle-s.startAngle>0.26?"-0.4em":"0.35em").style("font-size",sz(9)).style("font-weight","600").style("fill","#fff").text(s.data.data.name);
+      if (s.endAngle-s.startAngle>0.26) t.append("tspan").attr("x",0).attr("dy","1.3em").style("font-size",sz(8)).style("fill","rgba(255,255,255,0.85)").text(s.data.value.toFixed(1)+" "+UNIT);
+    });
+
+  } else if (hasParents) {
+    g.selectAll(".r1-arc, .r2-arc, .r3-arc, .ring3-lbl").remove();
+    const innerR = outerR*0.35, midR = outerR*0.62;
+    const innerArc = d3.arc().innerRadius(innerR).outerRadius(midR-3).cornerRadius(2).padAngle(0.025);
+    const outerArc = d3.arc().innerRadius(midR+1).outerRadius(outerR).cornerRadius(2).padAngle(0.008);
+    const leafData = json.data.filter(d => !nameHasCh.has(d.name) && +d.value > 0);
+    const groups   = d3.group(leafData, d => d.parent || "Other");
+    const groupList = [...groups.entries()]
+      .map(([name, ch]) => ({ name, value: d3.sum(ch, d=>d.value), children: ch.sort((a,b)=>b.value-a.value) }))
+      .sort((a,b) => b.value - a.value);
+    const innerPie = d3.pie().value(d=>d.value).sort(null).padAngle(0.025)(groupList);
+    const iArcs = g.selectAll(".i-arc").data(innerPie, d => d.data.name);
+    iArcs.exit().transition("data").duration(T/2).style("opacity",0).remove();
+    iArcs.enter().append("path").attr("class","i-arc").attr("stroke","#fff").attr("stroke-width",2).style("cursor","pointer")
+      .each(function(d) { this.__prev={startAngle:d.startAngle,endAngle:d.startAngle}; })
+      .on("mouseover",function(e,d){d3.select(this).transition("hover").duration(100).attr("transform","scale(1.05)");centerName.text(d.data.name);centerVal.text(d.data.value.toFixed(1)+" "+UNIT);showTT(e,d.data.name,d.data.value,"");})
+      .on("mousemove",moveTT).on("mouseout",function(){d3.select(this).transition("hover").duration(150).attr("transform","scale(1)");resetCenter();hideTT();})
+    .merge(iArcs).transition("data").duration(T).ease(d3.easeCubicOut)
+      .attrTween("d",function(d){const i=d3.interpolate(this.__prev||d,d);this.__prev={...d};return t=>innerArc(i(t));})
+      .attr("fill",d=>color(d.data.name));
+    const allOuter=[];
+    innerPie.forEach(ps=>{
+      d3.pie().value(d=>d.value).sort(null).startAngle(ps.startAngle+0.012).endAngle(ps.endAngle-0.012).padAngle(0.006)(ps.data.children)
+        .forEach((s,i)=>allOuter.push({...s,_pName:ps.data.name,_i:i,_n:ps.data.children.length}));
+    });
+    const oArcs = g.selectAll(".o-arc").data(allOuter, d => d.data.name);
+    oArcs.exit().transition("data").duration(T/2).style("opacity",0).remove();
+    oArcs.enter().append("path").attr("class","o-arc").attr("stroke","#fff").attr("stroke-width",1).style("cursor","pointer")
+      .each(function(d){this.__prev={startAngle:d.startAngle,endAngle:d.startAngle};})
+      .on("mouseover",function(e,d){d3.select(this).transition("hover").duration(100).attr("transform","scale(1.04)");centerName.text(d.data.name);centerVal.text(d.data.value.toFixed(1)+" "+UNIT);showTT(e,d.data.name,d.data.value,d._pName);})
+      .on("mousemove",moveTT).on("mouseout",function(){d3.select(this).transition("hover").duration(150).attr("transform","scale(1)");resetCenter();hideTT();})
+    .merge(oArcs).transition("data").duration(T).ease(d3.easeCubicOut)
+      .attrTween("d",function(d){const i=d3.interpolate(this.__prev||d,d);this.__prev={...d};return t=>outerArc(i(t));})
+      .attr("fill",d=>color(d._pName)).attr("opacity",d=>0.45+(d._i/Math.max(d._n-1,1))*0.55);
+    g.selectAll(".ring-lbl").remove();
+    innerPie.forEach(s=>{
+      if(s.endAngle-s.startAngle<0.18) return;
+      const mid=(s.startAngle+s.endAngle)/2,r=(innerR+midR-3)/2;
+      const t=g.append("text").attr("class","ring-lbl").attr("transform",`translate(${Math.sin(mid)*r},${-Math.cos(mid)*r})`).attr("text-anchor","middle").style("pointer-events","none");
+      t.append("tspan").attr("x",0).attr("dy","-0.5em").style("font-size",sz(11)).style("font-weight","700").style("fill","#fff").text(s.data.name);
+      t.append("tspan").attr("x",0).attr("dy","1.3em").style("font-size",sz(10)).style("fill","rgba(255,255,255,0.85)").text(s.data.value.toFixed(1)+" "+UNIT);
+    });
+    innerPie.forEach(ps=>{
+      d3.pie().value(d=>d.value).sort(null).startAngle(ps.startAngle+0.012).endAngle(ps.endAngle-0.012).padAngle(0.006)(ps.data.children).forEach(s=>{
+        if(s.endAngle-s.startAngle<0.15) return;
+        const mid=(s.startAngle+s.endAngle)/2,r=(midR+1+outerR)/2;
+        const t=g.append("text").attr("class","ring-lbl").attr("transform",`translate(${Math.sin(mid)*r},${-Math.cos(mid)*r})`).attr("text-anchor","middle").style("pointer-events","none");
+        t.append("tspan").attr("x",0).attr("dy",s.endAngle-s.startAngle>0.3?"-0.4em":"0.35em").style("font-size",sz(10)).style("font-weight","700").style("fill","#fff").text(s.data.name);
+        if(s.endAngle-s.startAngle>0.3) t.append("tspan").attr("x",0).attr("dy","1.3em").style("font-size",sz(9)).style("fill","rgba(255,255,255,0.85)").text(s.data.value.toFixed(1)+" "+UNIT);
+      });
+    });
+
+  } else {
+    const singleData = json.data.filter(d => +d.value > 0).sort((a,b) => b.value - a.value);
+    const innerR = outerR * 0.45;
+    const arcGen = d3.arc().innerRadius(innerR).outerRadius(outerR).cornerRadius(2).padAngle(0.015);
+    const pie = d3.pie().value(d=>d.value).sort(null)(singleData);
+    const slices = g.selectAll(".slice").data(pie, d => d.data.name);
+    slices.exit().transition("data").duration(T/2).style("opacity",0).remove();
+    slices.enter().append("path").attr("class","slice").attr("stroke","#fff").attr("stroke-width",2).style("cursor","pointer")
+      .each(function(){this.__prev={startAngle:0,endAngle:0};})
+      .on("mouseover",function(e,d){d3.select(this).transition("hover").duration(100).attr("transform","scale(1.05)");centerName.text(d.data.name);centerVal.text(d.data.value.toFixed(1)+" "+UNIT);showTT(e,d.data.name,d.data.value,"");})
+      .on("mousemove",moveTT).on("mouseout",function(){d3.select(this).transition("hover").duration(150).attr("transform","scale(1)");resetCenter();hideTT();})
+    .merge(slices).transition("data").duration(T).ease(d3.easeCubicOut)
+      .attrTween("d",function(d){const i=d3.interpolate(this.__prev||d,d);this.__prev={...d};return t=>arcGen(i(t));})
+      .attr("fill",d=>color(d.data.name));
+    g.selectAll(".slice-lbl").remove();
+    pie.forEach(s=>{
+      if(s.endAngle-s.startAngle<0.18) return;
+      const mid=(s.startAngle+s.endAngle)/2,r=(innerR+outerR)/2;
+      const t=g.append("text").attr("class","slice-lbl").attr("transform",`translate(${Math.sin(mid)*r},${-Math.cos(mid)*r})`).attr("text-anchor","middle").style("pointer-events","none");
+      t.append("tspan").attr("x",0).attr("dy",s.endAngle-s.startAngle>0.32?"-0.4em":"0.35em").style("font-size",sz(11)).style("font-weight","700").style("fill","#fff").text(s.data.name);
+      if(s.endAngle-s.startAngle>0.32) t.append("tspan").attr("x",0).attr("dy","1.3em").style("font-size",sz(10)).style("fill","rgba(255,255,255,0.85)").text(s.data.value.toFixed(1)+" "+UNIT);
+    });
+  }
+
+  scheduleScreenshot(json.config);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// chart_04  Sunburst
+// ════════════════════════════════════════════════════════════════════════════
+function drawSunburst(json, W, H, container) {
+  const root = buildHierarchy(json.data);
+  d3.partition().size([2 * Math.PI, root.height + 1])(root);
+  const maxR  = Math.min(W, H) / 2 - 10;
+  const radius = maxR / (root.height + 1);
+  const T = 600;
+
+  const arc = d3.arc()
+    .startAngle(d => d.x0).endAngle(d => d.x1)
+    .padAngle(d => Math.min((d.x1-d.x0)/2, 0.005)).padRadius(radius*1.5)
+    .innerRadius(d => Math.max(0, d.y0) * radius)
+    .outerRadius(d => Math.max(d.y0*radius, d.y1*radius-1));
+
+  function arcVisible(d)    { return d.y1 <= root.height+1 && d.y0 >= 1 && d.x1 > d.x0; }
+  function labelVisible(d)  { return d.y1 <= root.height+1 && d.y0 >= 1 && (d.y1-d.y0)*(d.x1-d.x0) > 0.04; }
+  function labelTransform(d) {
+    const x = (d.x0+d.x1)/2*180/Math.PI, y = (d.y0+d.y1)/2*radius;
+    return `rotate(${x-90}) translate(${y},0) rotate(${x<180?0:180})`;
+  }
+
+  let g = container.select("g.sun-inner");
+  if (g.empty()) g = container.append("g").attr("class", "sun-inner")
+    .attr("transform", `translate(${W/2},${H/2})`);
+
+  const prevState = new Map();
+  g.selectAll("path.sun-arc").each(function(d) { if (d && d.current) prevState.set(d.data.name, {...d.current}); });
+
+  const descs = root.descendants().filter(d => d.depth);
+  const paths = g.selectAll("path.sun-arc").data(descs, d => d.data.name);
+  paths.exit().transition("data").duration(T/2).attr("fill-opacity", 0).remove();
+  const pathsM = paths.enter().append("path").attr("class", "sun-arc").attr("fill-opacity", 0).merge(paths);
+  pathsM.each(function(d) {
+    const prev = prevState.get(d.data.name);
+    d.current = prev || { x0: d.x0, x1: d.x0, y0: d.y0, y1: d.y1 };
+    d.target  = { x0: d.x0, x1: d.x1, y0: d.y0, y1: d.y1 };
+  });
+  pathsM.attr("fill", d => { let a=d; while(a.depth>1) a=a.parent; return color(a.data.name); })
+    .style("cursor", d => d.children ? "pointer" : "default")
+    .on("mouseover", (e,d) => showTT(e, d.data.name, d.value, d.parent?.data.name !== "Total" ? d.parent?.data.name : ""))
+    .on("mousemove", moveTT).on("mouseout", hideTT).on("click", clicked)
+    .transition("data").duration(T).ease(d3.easeCubicInOut)
+    .tween("arcData", d => { const i=d3.interpolate(d.current,d.target); return t=>{d.current=i(t);}; })
+    .attrTween("d", d => () => arc(d.current))
+    .attr("fill-opacity", d => arcVisible(d.target) ? (d.children?0.6:0.9) : 0);
+
+  const lbls = g.selectAll("text.sun-lbl").data(descs, d => d.data.name);
+  lbls.exit().transition("data").duration(T/2).attr("fill-opacity", 0).remove();
+  const lblsE = lbls.enter().append("text").attr("class", "sun-lbl")
+    .style("fill","#fff").style("pointer-events","none").style("text-anchor","middle").attr("fill-opacity", 0);
+  lblsE.append("tspan").attr("class","sun-name").attr("x",0).attr("dy","-0.3em").style("font-weight","700");
+  lblsE.append("tspan").attr("class","sun-val").attr("x",0).attr("dy","1.3em").style("fill","rgba(255,255,255,0.85)");
+  const lblsM = lblsE.merge(lbls);
+  lblsM.select(".sun-name").style("font-size",sz(11)).text(d=>d.data.name);
+  lblsM.select(".sun-val").style("font-size",sz(10)).text(d=>d.value.toFixed(1)+" "+UNIT);
+  lblsM.transition("data").duration(T).ease(d3.easeCubicInOut)
+    .attrTween("transform", d => () => labelTransform(d.current))
+    .attr("fill-opacity", d => +labelVisible(d.target));
+
+  let center = g.select("circle.sun-center");
+  if (center.empty()) center = g.append("circle").attr("class","sun-center")
+    .attr("fill","none").attr("pointer-events","all").style("cursor","pointer");
+  center.attr("r", radius).on("click", () => clicked(null, root));
+
+  let cName = g.select("text.sun-cname"), cVal = g.select("text.sun-cval");
+  if (cName.empty()) {
+    cName = g.append("text").attr("class","sun-cname").attr("text-anchor","middle").attr("dy","-0.4em")
+      .style("font-weight","700").style("fill","#333").style("pointer-events","none");
+    cVal = g.append("text").attr("class","sun-cval").attr("text-anchor","middle").attr("dy","1em")
+      .style("fill","#666").style("pointer-events","none");
+  }
+  cName.style("font-size",sz(13)).text("Total");
+  cVal.style("font-size",sz(11)).text(root.value.toFixed(1)+" "+UNIT);
+
+  function clicked(event, p) {
+    if (!p) p = root;
+    root.each(d => {
+      d.target = {
+        x0: Math.max(0, Math.min(1,(d.x0-p.x0)/(p.x1-p.x0))) * 2*Math.PI,
+        x1: Math.max(0, Math.min(1,(d.x1-p.x0)/(p.x1-p.x0))) * 2*Math.PI,
+        y0: Math.max(0, d.y0-p.depth), y1: Math.max(0, d.y1-p.depth)
+      };
+    });
+    const t = g.transition("data").duration(600).ease(d3.easeCubicInOut);
+    pathsM.transition(t)
+      .tween("arcData", d => { const i=d3.interpolate(d.current,d.target); return t=>{d.current=i(t);}; })
+      .filter(function(d) { return +this.getAttribute("fill-opacity")||arcVisible(d.target); })
+      .attr("fill-opacity", d => arcVisible(d.target)?(d.children?0.6:0.9):0)
+      .attrTween("d", d => () => arc(d.current));
+    lblsM.filter(function(d) { return +this.getAttribute("fill-opacity")||labelVisible(d.target); })
+      .transition(t).attr("fill-opacity", d => +labelVisible(d.target))
+      .attrTween("transform", d => () => labelTransform(d.current));
+    cName.text(p===root?"Total":p.data.name);
+    cVal.text(p.value.toFixed(1)+" "+UNIT);
+  }
+
+  scheduleScreenshot(json.config);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// chart_05  Sankey
+// ════════════════════════════════════════════════════════════════════════════
+function drawSankey(json, W, H, container) {
+  const nodeByName = new Map();
+  const nodes = [], links = [];
+  json.data.forEach(d => {
+    if (!d.value) return;
+    const pName = (d.parent || "Total") + " ";
+    if (!nodeByName.has(pName)) { nodeByName.set(pName, { name: pName }); nodes.push(nodeByName.get(pName)); }
+    if (!nodeByName.has(d.name)) { nodeByName.set(d.name, { name: d.name }); nodes.push(nodeByName.get(d.name)); }
+    links.push({ source: nodeByName.get(pName), target: nodeByName.get(d.name), value: d.value });
+  });
+
+  const sankey = d3.sankey().nodeWidth(15).nodePadding(15).extent([[10,10],[W-140,H-20]]);
+  const { nodes: sNodes, links: sLinks } = sankey({ nodes, links });
+  const T = 600;
+
+  let g = container.select("g.sankey-inner");
+  if (g.empty()) g = container.append("g").attr("class", "sankey-inner");
+
+  const linkSel = g.selectAll(".sankey-link").data(sLinks, d => d.source.name.trim()+"→"+d.target.name.trim());
+  linkSel.exit().transition("data").duration(T/2).style("opacity",0).remove();
+  linkSel.enter().append("path").attr("class","sankey-link").attr("fill","none").attr("stroke-opacity",0.3)
+    .on("mouseover",(e,d)=>showTT(e,d.source.name.trim()+" → "+d.target.name.trim(),d.value,""))
+    .on("mousemove",moveTT).on("mouseout",hideTT)
+  .merge(linkSel).transition("data").duration(T).ease(d3.easeCubicOut)
+    .attr("d",d3.sankeyLinkHorizontal())
+    .attr("stroke-width",d=>Math.max(1,d.width))
+    .attr("stroke",d=>color(d.source.name));
+
+  const nodeSel = g.selectAll(".snode").data(sNodes, d => d.name);
+  nodeSel.exit().transition("data").duration(T/2).style("opacity",0).remove();
+  const nodeE = nodeSel.enter().append("g").attr("class","snode").style("opacity",0);
+  nodeE.append("rect").attr("stroke","#fff")
+    .on("mouseover",(e,d)=>showTT(e,d.name.trim(),d.value,""))
+    .on("mousemove",moveTT).on("mouseout",hideTT);
+  nodeE.append("text").style("pointer-events","none")
+    .call(t=>t.append("tspan").attr("class","sn-name").attr("dy","-0.3em").style("font-weight","700").style("fill","#222"))
+    .call(t=>t.append("tspan").attr("class","sn-val").attr("dy","1.3em").style("fill","#666"));
+  const nodeM = nodeE.merge(nodeSel);
+  nodeM.transition("data").duration(T).ease(d3.easeCubicOut).style("opacity",1);
+  nodeM.select("rect").transition("data").duration(T).ease(d3.easeCubicOut)
+    .attr("x",d=>d.x0).attr("y",d=>d.y0).attr("height",d=>d.y1-d.y0).attr("width",sankey.nodeWidth())
+    .attr("fill",d=>color(d.name.trim()));
+  nodeM.select("text")
+    .attr("x",d=>d.x0<W/2?d.x1+6:d.x0-6).attr("y",d=>(d.y1+d.y0)/2)
+    .attr("text-anchor",d=>d.x0<W/2?"start":"end");
+  nodeM.select(".sn-name").attr("x",d=>d.x0<W/2?d.x1+6:d.x0-6).style("font-size",sz(12)).text(d=>d.name.trim());
+  nodeM.select(".sn-val").attr("x",d=>d.x0<W/2?d.x1+6:d.x0-6).style("font-size",sz(10)).text(d=>d.value.toFixed(1)+" "+UNIT);
+
+  scheduleScreenshot(json.config);
+}
+
+poll();
+setInterval(poll, POLL_MS);
+</script>
+</body>
+</html>

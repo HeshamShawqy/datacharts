@@ -1,16 +1,16 @@
 {
-  "updated": "2026-03-19 00:37:41",
+  "updated": "2026-03-20 17:57:55",
   "config": {
-    "type": "sunburst",
+    "type": "bar",
     "title": "Grasshopper Dashboard",
     "subtitle": "Live Data Feed",
     "w": 553,
-    "font_scale": 1.5
+    "font_scale": 1.0
   },
   "data": [
     {
       "name": "Zone-A",
-      "value": 15435.513212780676,
+      "value": 3157.6491509600532,
       "parent": "Residential"
     },
     {
@@ -20,7 +20,7 @@
     },
     {
       "name": "Zone-C",
-      "value": 11531.702218118702,
+      "value": 3157.649150960053,
       "parent": "Residential"
     },
     {
@@ -50,12 +50,12 @@
     },
     {
       "name": "Zone-I",
-      "value": 15187.281322856237,
+      "value": 6930.456224998338,
       "parent": "Industrial"
     },
     {
       "name": "Zone-J",
-      "value": 11835.78812905818,
+      "value": 3412.5306999626278,
       "parent": "Residential"
     },
     {
@@ -80,7 +80,7 @@
     },
     {
       "name": "Zone-O",
-      "value": 3183.547063126649,
+      "value": 577.8747746681768,
       "parent": "Industrial"
     }
   ]
