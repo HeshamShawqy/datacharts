@@ -91,12 +91,9 @@ try:
     _enable     = bool(g.get("enable")) if g.get("enable") is not None else True
     _x          = int(g.get("x") or 20)
     _y          = int(g.get("y") or 60)
-    _w          = int(g.get("w") or 500)
+    _w          = int(g.get("chart_size") or 500)
 
-    # viewport: None → ["Perspective"], single str, or list of str
-    # When the GH parameter is in Item Access mode and a multiline list is
-    # connected, this script runs once per item.  Accumulate across iterations
-    # so every name is included; reset only on the first iteration (index 0).
+    # viewport: Non ["Perspective"], single str, or list of str
     _vp_raw = g.get("viewport")
     if not _vp_raw:
         _new_vp = {"Perspective"}
@@ -178,7 +175,7 @@ try:
         _wv.Url = System.Uri(URL)
 
         def _on_closing(sender, e):
-            e.Cancel = True          # don't destroy – just hide so WebView keeps running
+            e.Cancel = True          
             _form.Visible = False
         _form.Closing += _on_closing
 
