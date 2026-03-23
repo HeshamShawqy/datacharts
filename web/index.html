@@ -133,9 +133,9 @@ function dispatchDraw(type, json, W, H, g) {
   else                          drawTreemap(json, W, H, g);
 }
 
-// ── screenshot (SVG → canvas → POST) ─────────────────────────────────────────
-// Replaces the old exportCanvas dual-render approach. Serialises the live SVG,
-// strips the user's zoom transform so the overlay always shows the full chart.
+// ════════════════════════════════════════════════════════════════════════════
+// scheduleScreenshot
+// ════════════════════════════════════════════════════════════════════════════
 let _shotTimer = null;
 function scheduleScreenshot(config) {
   clearTimeout(_shotTimer);
@@ -198,7 +198,9 @@ function scheduleScreenshot(config) {
   }, 700);
 }
 
-// ── poll ──────────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// poll
+// ════════════════════════════════════════════════════════════════════════════
 async function poll() {
   try {
     const res = await fetch(DATA_FILE + "?t=" + Date.now());
@@ -224,7 +226,9 @@ async function poll() {
   }
 }
 
-// ── hierarchy helper ──────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// hierarchy helper
+// ════════════════════════════════════════════════════════════════════════════
 function buildHierarchy(data) {
   const hasParents = data.some(d => d.parent);
   if (!hasParents)

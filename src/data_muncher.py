@@ -1,6 +1,6 @@
 """
 Data Muncher - Grasshopper Dashboard Component
-Rhino 8 Script Component (Python 3)
+Rhino 8 Script Component
 
 INPUTS:
   names      : list[str]   - Data item labels
@@ -24,6 +24,7 @@ OUTPUTS:
 
 a = "initializing..."
 
+# prefix for all sc.sticky keys so we don't collide with other components
 _PFX = "DMUNCH_"
 _WEB_ASSETS = ("index.html", "d3.min.js", "d3-sankey.min.js")
 
@@ -42,6 +43,8 @@ except Exception as ex:
 
 
 def _get_pkg_dir():
+    # try multiple strategies to find our web assets — the component can be
+    # installed as a GH library OR loaded directly, so we check both paths
     roots = []
     try:
         import Grasshopper
@@ -66,6 +69,7 @@ def _get_pkg_dir():
 
 
 def _ensure_work_dir(port):
+    # serve from a temp copy so we never lock the original install files
     work = os.path.join(tempfile.gettempdir(), "data-muncher", str(port))
     os.makedirs(work, exist_ok=True)
     pkg = _get_pkg_dir()
@@ -110,6 +114,7 @@ try:
 
     sc.sticky[_PFX + "VIEWPORTS"] = _viewports
 
+    # grab a random free port once, then keep it for the session
     if _PFX + "PORT" not in sc.sticky:
         import socket as _sock
         with _sock.socket() as _s:
@@ -175,7 +180,7 @@ try:
         _wv.Url = System.Uri(URL)
 
         def _on_closing(sender, e):
-            e.Cancel = True          
+            e.Cancel = True  # don't destroy — just hide so we can reuse the window
             _form.Visible = False
         _form.Closing += _on_closing
 
@@ -190,6 +195,8 @@ try:
     if _frm is not None and _enable:
         _frm.Visible = True
 
+    # the browser POSTs a PNG screenshot; we pick it up here on Rhino's
+    # idle loop and push it into the display pipeline for the viewport overlay
     if _PFX + "IDLE" not in sc.sticky:
         def _idle(sender, e):
             needs = False
@@ -217,6 +224,7 @@ try:
         Rhino.RhinoApp.Idle += _idle
         sc.sticky[_PFX + "IDLE"] = _idle
 
+    # display conduit — blits the latest chart bitmap onto the viewport
     if _PFX + "CH" not in sc.sticky:
         def _draw(sender, e):
             if not sc.sticky.get(_PFX + "ENABLED", True):
@@ -238,6 +246,7 @@ try:
         rd.DisplayPipeline.DrawForeground += _draw
         sc.sticky[_PFX + "CH"] = _draw
 
+    # pack GH data into JSON and write it out — the browser polls this file
     if _names and _values and len(_names) == len(_values):
         _parents = (_parents + [""] * len(_names))[:len(_names)]
         rows = [
