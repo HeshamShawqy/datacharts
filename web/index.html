@@ -16,8 +16,8 @@
   #chart-wrap { flex: 1; min-height: 0; position: relative; }
   svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
-  .node rect { stroke: #fff; stroke-width: 2px; transition: opacity 0.2s; cursor: pointer; }
-  .node rect:hover { opacity: 0.7; }
+  .node rect, .node circle { stroke: #fff; stroke-width: 2px; transition: opacity 0.2s; cursor: pointer; }
+  .node rect:hover, .node circle:hover { opacity: 0.7; }
   .node text { pointer-events: none; }
   .parent-label { font-size: 11px; font-weight: bold; fill: #555; text-transform: uppercase; letter-spacing: 0.05em; }
   .sankey-link { fill: none; stroke-opacity: 0.3; transition: stroke-opacity 0.2s; cursor: pointer; }
@@ -36,12 +36,38 @@
     padding: 8px 12px; font-size: 11px; color: #900; z-index: 9999;
     white-space: pre-wrap; word-break: break-all;
   }
+  /* ── UI overlay bar ─────────────────────────────── */
+  #ui-bar {
+    position: absolute; bottom: 12px; right: 12px;
+    display: flex; align-items: center; gap: 8px;
+    pointer-events: none; z-index: 100;
+  }
+  #ui-hints {
+    font-size: 10px; color: #aaa; letter-spacing: 0.03em;
+    background: rgba(255,255,255,0.88); padding: 4px 10px;
+    border-radius: 20px; border: 1px solid #eee;
+    pointer-events: none; white-space: nowrap;
+  }
+  .ui-btn {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: rgba(255,255,255,0.92); border: 1px solid #ddd;
+    cursor: pointer; pointer-events: all;
+    font-size: 15px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08); transition: background 0.15s;
+    color: #555;
+  }
+  .ui-btn:hover { background: #f0f0f0; color: #111; }
 </style>
 </head>
 <body>
 
 <div id="chart-wrap">
   <svg id="chart"></svg>
+  <div id="ui-bar">
+    <span id="ui-hints">scroll = zoom &nbsp;·&nbsp; drag = pan &nbsp;·&nbsp; dbl-click = reset &nbsp;·&nbsp; hover for values</span>
+    <button class="ui-btn" id="btn-extents" title="Zoom extents">⊡</button>
+    <button class="ui-btn" id="btn-dl" title="Download PNG">↓</button>
+  </div>
 </div>
 <div id="err-overlay"></div>
 
@@ -98,8 +124,54 @@ function moveTT(e) {
 }
 function hideTT() { tooltip.style("opacity", 0); }
 
+// ── colour helpers ────────────────────────────────────────────────────────────
+function nodeColor(d) {
+  if (d.data && d.data.color) return d.data.color;
+  if (!d.parent) return "#ccc";
+  const key = d.parent.data.name !== "Total" ? d.parent.data.name : d.data.name;
+  return color(key);
+}
+
+// ── UI buttons ────────────────────────────────────────────────────────────────
+function zoomExtents() {
+  svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity);
+}
+
+function downloadPNG() {
+  const svgEl = document.getElementById("chart");
+  const W = svgEl.clientWidth, H = svgEl.clientHeight;
+  const scale = 3;
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  const st = document.createElementNS("http://www.w3.org/2000/svg", "style");
+  st.textContent = [
+    'text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}',
+    '.parent-label{font-size:11px;font-weight:bold;fill:#555;text-transform:uppercase;letter-spacing:0.05em}',
+    '.sankey-link{fill:none;stroke-opacity:0.3}'
+  ].join(" ");
+  clone.insertBefore(st, clone.firstChild);
+  const svgStr = new XMLSerializer().serializeToString(clone);
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement("canvas");
+    c.width = W * scale; c.height = H * scale;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.scale(scale, scale); ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(img._url);
+    const a = document.createElement("a");
+    a.download = "chart_" + new Date().toISOString().slice(0,10) + ".png";
+    a.href = c.toDataURL("image/png"); a.click();
+  };
+  const blob = new Blob([svgStr], {type:"image/svg+xml;charset=utf-8"});
+  img._url = URL.createObjectURL(blob); img.src = img._url;
+}
+
+document.getElementById("btn-extents").addEventListener("click", zoomExtents);
+document.getElementById("btn-dl").addEventListener("click", downloadPNG);
+
 // ── renderer ──────────────────────────────────────────────────────────────────
-const DATA_JOIN_TYPES = new Set(["bar", "treemap", "pie", "sunburst", "sankey"]);
+const DATA_JOIN_TYPES = new Set(["bar", "treemap", "pie", "sunburst", "sankey", "pack"]);
 
 function renderChart(json, W, H) {
   svg.attr("width", W).attr("height", H);
@@ -128,6 +200,7 @@ function renderChart(json, W, H) {
 function dispatchDraw(type, json, W, H, g) {
   if      (type === "bar")      drawBarChart(json, W, H, g);
   else if (type === "pie")      drawDonut(json, W, H, g);
+  else if (type === "pack")     drawCirclePack(json, W, H, g);
   else if (type === "sankey")   drawSankey(json, W, H, g);
   else if (type === "sunburst") drawSunburst(json, W, H, g);
   else                          drawTreemap(json, W, H, g);
@@ -233,15 +306,32 @@ function buildHierarchy(data) {
   const hasParents = data.some(d => d.parent);
   if (!hasParents)
     return d3.hierarchy({ name: "Total", children: data }).sum(d => d.value).sort((a,b) => b.value - a.value);
-  const childNames = new Set(data.map(d => d.name));
-  const missing = [...new Set(data.map(d => d.parent).filter(Boolean))].filter(p => !childNames.has(p));
+  // build a lookup of name→compound id so child _pid can reference the right parent
+  // items whose name appears as another item's parent are intermediate nodes
+  const nameToParent = new Map();
+  data.forEach(d => { if (d.parent) nameToParent.set(d.name, d.parent); });
+  const idOf = d => d.parent ? (d.parent + "|" + d.name) : d.name;
+  const idByName = new Map();
+  data.forEach(d => idByName.set(d.name, idOf(d)));
+  const parentNames = [...new Set(data.map(d => d.parent).filter(Boolean))];
+  const missing = parentNames.filter(p => !idByName.has(p));
   const all = [
-    { name: "Total", parent: null },
-    ...missing.map(p => ({ name: p, parent: "Total" })),
-    ...data.map(d => ({ ...d, parent: d.parent || "Total" }))
+    { _id: "Total", name: "Total", _pid: null },
+    ...missing.map(p => ({ _id: p, name: p, _pid: "Total" })),
+    ...data.map(d => ({
+      ...d, _id: idOf(d),
+      _pid: d.parent ? (idByName.get(d.parent) || d.parent) : "Total"
+    }))
   ];
-  return d3.stratify().id(d => d.name).parentId(d => d.parent)(all)
+  return d3.stratify().id(d => d._id).parentId(d => d._pid)(all)
     .sum(d => d.value).sort((a,b) => b.value - a.value);
+}
+// unique key for d3 data joins — uses hierarchy path so duplicate names work
+function nodeKey(d) {
+  const parts = [];
+  let n = d;
+  while (n) { parts.unshift(n.data.name); n = n.parent; }
+  return parts.join("|");
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -252,7 +342,7 @@ function drawTreemap(json, W, H, container) {
   d3.treemap().size([W, H]).paddingOuter(4).paddingTop(22).paddingInner(2).round(true)(root);
   const T = 600;
 
-  const nodes = container.selectAll(".node").data(root.leaves(), d => d.data.name);
+  const nodes = container.selectAll(".node").data(root.leaves(), nodeKey);
   nodes.exit().transition("data").duration(T/2).style("opacity", 0).remove();
 
   const nodesE = nodes.enter().append("g").attr("class", "node").style("opacity", 0)
@@ -273,7 +363,7 @@ function drawTreemap(json, W, H, container) {
   nodesM.each(function(d) {
     const w = d.x1 - d.x0, h = d.y1 - d.y0, el = d3.select(this);
     if (w <= 0 || h <= 0) return;
-    const uid = "tm-" + d.data.name.replace(/\W/g, "_");
+    const uid = "tm-" + (d.data._id || d.data.name).replace(/\W/g, "_");
     el.append("clipPath").attr("id", uid).append("rect")
       .attr("x", 2).attr("y", 2).attr("width", Math.max(0, w-4)).attr("height", Math.max(0, h-4));
     const tg = el.append("g").attr("class", "cell-text").attr("clip-path", `url(#${uid})`);
@@ -283,7 +373,7 @@ function drawTreemap(json, W, H, container) {
       .style("font-size", sz(10)).style("fill", "rgba(255,255,255,0.8)").text(d.value.toFixed(1));
   });
 
-  const pLabels = container.selectAll(".plabel").data(root.children || [], d => d.data.name);
+  const pLabels = container.selectAll(".plabel").data(root.children || [], nodeKey);
   pLabels.exit().transition("data").duration(T/2).style("opacity", 0).remove();
   pLabels.enter().append("text").attr("class", "plabel parent-label").style("opacity", 0)
     .merge(pLabels).transition("data").duration(T)
@@ -294,7 +384,92 @@ function drawTreemap(json, W, H, container) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// chart_02  Bar Chart
+// chart_02  Circle Pack
+// ════════════════════════════════════════════════════════════════════════════
+function drawCirclePack(json, W, H, container) {
+  const root = buildHierarchy(json.data);
+  d3.pack().size([W, H]).padding(4)(root);
+
+  let focus = root;
+  const g = container.append("g");
+
+  // transparent bg rect — catches zoom-out clicks without needing svg.on()
+  g.append("rect").attr("width", W).attr("height", H).attr("fill", "none").attr("pointer-events", "all")
+    .on("click", () => { if (focus !== root) zoomTo(root); });
+
+  // Pass 1 — ALL circles (so labels render on top in SVG z-order)
+  const circle = g.selectAll("circle")
+    .data(root.descendants()).enter().append("circle")
+    .attr("cx", d => d.x).attr("cy", d => d.y).attr("r", d => d.r)
+    .attr("fill", d => {
+      if (!d.parent) return "none";
+      if (d.children) return color(d.data.name) + "28";
+      return nodeColor(d);
+    })
+    .attr("stroke", d => d.children ? color(d.data.name) : "#fff")
+    .attr("stroke-width", d => d.children ? 2 : 1.5)
+    .attr("stroke-opacity", d => d.children ? 0.6 : 1)
+    .style("cursor", d => d.parent && d.children ? "pointer" : "default")
+    .on("mouseover", function(e, d) {
+      if (!d.children && d.parent) {
+        d3.select(this).attr("opacity", 0.75);
+        showTT(e, d.data.name, d.value, d.parent.data.name !== "Total" ? d.parent.data.name : "");
+      }
+    })
+    .on("mousemove", moveTT)
+    .on("mouseout", function() { d3.select(this).attr("opacity", 1); hideTT(); })
+    .on("click", function(e, d) {
+      e.stopPropagation();
+      if (d.children && focus !== d) zoomTo(d);
+      else if (focus !== root) zoomTo(root);
+    });
+
+  // Pass 2 — labels (group labels centered, leaf labels + value when large enough)
+  const labelG = g.selectAll(".lbl")
+    .data(root.descendants()).enter().append("g").attr("class", "lbl")
+    .style("pointer-events", "none")
+    .style("opacity", d => d.parent === root ? 1 : 0);
+
+  // name line — shift up when value will also show
+  labelG.append("text")
+    .attr("x", d => d.x).attr("y", d => d.y)
+    .attr("text-anchor", "middle")
+    .attr("dy", d => (!d.children && d.r > 22) ? "-0.15em" : "0.35em")
+    .style("fill", d => d.children ? color(d.data.name) : "#fff")
+    .style("font-weight", d => d.children ? "700" : "600")
+    .style("font-size", d => d.children ? sz(12) : sz(11))
+    .text(d => d.data.name !== "Total" ? d.data.name : "");
+
+  // value line — leaf nodes with enough radius only
+  labelG.filter(d => !d.children && d.r > 22)
+    .append("text")
+    .attr("x", d => d.x).attr("y", d => d.y)
+    .attr("text-anchor", "middle").attr("dy", "1.1em")
+    .style("fill", "rgba(255,255,255,0.8)").style("font-size", sz(10))
+    .text(d => d.value.toFixed(1) + " " + UNIT);
+
+  const label = labelG;
+
+  function zoomTo(v) {
+    focus = v;
+    const k = Math.min(W, H) / (v.r * 2.2);
+    const tx = W/2 - v.x * k, ty = H/2 - v.y * k;
+    g.transition().duration(500).ease(d3.easeCubicInOut)
+      .attr("transform", `translate(${tx},${ty}) scale(${k})`);
+    label.transition().duration(500)
+      .style("opacity", d => (!d.parent || (d.parent !== v && d !== v)) ? 0 : 1);
+    label.selectAll("text").transition().duration(500)
+      .style("font-size", function(d) {
+        const base = d3.select(this.parentNode).datum();
+        return `${(base.children ? 12 : 11) / k}px`;
+      });
+  }
+
+  scheduleScreenshot(json.config);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// chart_03  Bar Chart
 // ════════════════════════════════════════════════════════════════════════════
 function drawBarChart(json, W, H, container) {
   const hasParents = json.data.some(d => d.parent);
@@ -387,7 +562,7 @@ function drawBarChart(json, W, H, container) {
     .attr("y1", d => d._y+14).attr("y2", d => d._y+14).attr("stroke", d => color(d.parent));
 
   // bars
-  const bars = g.selectAll(".bar").data(barData, d => d.name);
+  const bars = g.selectAll(".bar").data(barData, d => (d.parent||"") + "|" + d.name);
   bars.exit().transition("data").duration(T/2).attr("width", 0).style("opacity", 0).remove();
   bars.enter().append("rect").attr("class", "bar")
     .attr("x", 0).attr("width", 0).attr("rx", 2)
@@ -400,7 +575,7 @@ function drawBarChart(json, W, H, container) {
     .attr("width", d => x(d.value)).attr("fill", d => color(d.parent || d.name));
 
   // name labels
-  const names = g.selectAll(".label-name").data(barData, d => d.name);
+  const names = g.selectAll(".label-name").data(barData, d => (d.parent||"") + "|" + d.name);
   names.exit().transition("data").duration(T/2).style("opacity", 0).remove();
   names.enter().append("text").attr("class", "label-name")
     .attr("text-anchor", "end").style("font-size", sz(12)).style("font-weight", "600").style("opacity", 0)
@@ -408,7 +583,7 @@ function drawBarChart(json, W, H, container) {
     .attr("x", -10).attr("y", d => d._y + BAR_H/2 + 4).style("font-size", sz(12)).style("opacity", 1).text(d => d.name);
 
   // value labels
-  const vals = g.selectAll(".label-val").data(barData, d => d.name);
+  const vals = g.selectAll(".label-val").data(barData, d => (d.parent||"") + "|" + d.name);
   vals.exit().transition("data").duration(T/2).style("opacity", 0).remove();
   vals.enter().append("text").attr("class", "label-val")
     .style("font-size", sz(11)).style("fill", "#666").style("opacity", 0)
@@ -481,7 +656,7 @@ function drawDonut(json, W, H, container) {
     .merge(r1a).transition("data").duration(T).ease(d3.easeCubicOut)
       .attrTween("d", function(d) { const i=d3.interpolate(this.__prev||d,d); this.__prev={...d}; return t=>arcR1(i(t)); })
       .attr("fill", d => color(d.data.data.name));
-    const r2a = g.selectAll(".r2-arc").data(allL2, d => d.data.data.name);
+    const r2a = g.selectAll(".r2-arc").data(allL2, d => d._l1Name + "|" + d.data.data.name);
     r2a.exit().transition("data").duration(T/2).style("opacity", 0).remove();
     r2a.enter().append("path").attr("class", "r2-arc").attr("stroke","#fff").attr("stroke-width",1.5).style("cursor","pointer")
       .each(function(d) { this.__prev = { startAngle: d.startAngle, endAngle: d.startAngle }; })
@@ -490,7 +665,7 @@ function drawDonut(json, W, H, container) {
     .merge(r2a).transition("data").duration(T).ease(d3.easeCubicOut)
       .attrTween("d", function(d) { const i=d3.interpolate(this.__prev||d,d); this.__prev={...d}; return t=>arcR2(i(t)); })
       .attr("fill", d => color(d._l1Name)).attr("opacity", 0.75);
-    const r3a = g.selectAll(".r3-arc").data(allL3, d => d.data.data.name);
+    const r3a = g.selectAll(".r3-arc").data(allL3, d => d._l1Name + "|" + d._l2Name + "|" + d.data.data.name);
     r3a.exit().transition("data").duration(T/2).style("opacity", 0).remove();
     r3a.enter().append("path").attr("class", "r3-arc").attr("stroke","#fff").attr("stroke-width",1).style("cursor","pointer")
       .each(function(d) { this.__prev = { startAngle: d.startAngle, endAngle: d.startAngle }; })
@@ -540,7 +715,7 @@ function drawDonut(json, W, H, container) {
       d3.pie().value(d=>d.value).sort(null).startAngle(ps.startAngle+0.012).endAngle(ps.endAngle-0.012).padAngle(0.006)(ps.data.children)
         .forEach((s,i)=>allOuter.push({...s,_pName:ps.data.name,_i:i,_n:ps.data.children.length}));
     });
-    const oArcs = g.selectAll(".o-arc").data(allOuter, d => d.data.name);
+    const oArcs = g.selectAll(".o-arc").data(allOuter, d => d._pName + "|" + d.data.name);
     oArcs.exit().transition("data").duration(T/2).style("opacity",0).remove();
     oArcs.enter().append("path").attr("class","o-arc").attr("stroke","#fff").attr("stroke-width",1).style("cursor","pointer")
       .each(function(d){this.__prev={startAngle:d.startAngle,endAngle:d.startAngle};})
@@ -622,14 +797,14 @@ function drawSunburst(json, W, H, container) {
     .attr("transform", `translate(${W/2},${H/2})`);
 
   const prevState = new Map();
-  g.selectAll("path.sun-arc").each(function(d) { if (d && d.current) prevState.set(d.data.name, {...d.current}); });
+  g.selectAll("path.sun-arc").each(function(d) { if (d && d.current) prevState.set(nodeKey(d), {...d.current}); });
 
   const descs = root.descendants().filter(d => d.depth);
-  const paths = g.selectAll("path.sun-arc").data(descs, d => d.data.name);
+  const paths = g.selectAll("path.sun-arc").data(descs, nodeKey);
   paths.exit().transition("data").duration(T/2).attr("fill-opacity", 0).remove();
   const pathsM = paths.enter().append("path").attr("class", "sun-arc").attr("fill-opacity", 0).merge(paths);
   pathsM.each(function(d) {
-    const prev = prevState.get(d.data.name);
+    const prev = prevState.get(nodeKey(d));
     d.current = prev || { x0: d.x0, x1: d.x0, y0: d.y0, y1: d.y1 };
     d.target  = { x0: d.x0, x1: d.x1, y0: d.y0, y1: d.y1 };
   });
@@ -642,7 +817,7 @@ function drawSunburst(json, W, H, container) {
     .attrTween("d", d => () => arc(d.current))
     .attr("fill-opacity", d => arcVisible(d.target) ? (d.children?0.6:0.9) : 0);
 
-  const lbls = g.selectAll("text.sun-lbl").data(descs, d => d.data.name);
+  const lbls = g.selectAll("text.sun-lbl").data(descs, nodeKey);
   lbls.exit().transition("data").duration(T/2).attr("fill-opacity", 0).remove();
   const lblsE = lbls.enter().append("text").attr("class", "sun-lbl")
     .style("fill","#fff").style("pointer-events","none").style("text-anchor","middle").attr("fill-opacity", 0);

@@ -1,88 +1,63 @@
 {
-  "updated": "2026-03-22 15:20:04",
+  "updated": "2026-03-30 12:36:58",
   "config": {
-    "type": "treemap",
+    "type": "sankey",
     "title": "Grasshopper Dashboard",
     "subtitle": "Live Data Feed",
     "units": "m\u00b2",
-    "w": 500,
-    "font_scale": 1.2
+    "w": 98,
+    "font_scale": 1.0
   },
   "data": [
     {
-      "name": "Zone-A",
-      "value": 9985.326880224478,
-      "parent": "Residential"
+      "name": "A",
+      "value": 10.0,
+      "parent": "INDUSTRIAL"
     },
     {
-      "name": "Zone-B",
-      "value": 3157.649150960053,
-      "parent": "Residential"
+      "name": "A",
+      "value": 11.0,
+      "parent": "OFFICE"
     },
     {
-      "name": "Zone-C",
-      "value": 7060.969456902587,
-      "parent": "Commercial"
+      "name": "B",
+      "value": 12.0,
+      "parent": "RESIDENTIAL"
     },
     {
-      "name": "Zone-D",
-      "value": 1677.1238729588295,
-      "parent": "Commercial"
+      "name": "B",
+      "value": 13.0,
+      "parent": "COMMERCIAL"
     },
     {
-      "name": "Zone-E",
-      "value": 1677.1238729588288,
-      "parent": "Industrial"
+      "name": "D",
+      "value": 14.0,
+      "parent": "MASSING"
     },
     {
-      "name": "Zone-F",
-      "value": 3844.8375020398134,
-      "parent": "Industrial"
+      "name": "E",
+      "value": 15.0,
+      "parent": "CONCEPT"
     },
     {
-      "name": "Zone-G",
-      "value": 4693.61805592544,
-      "parent": "Residential"
+      "name": "F",
+      "value": 16.0,
+      "parent": "PLAUY"
     },
     {
-      "name": "Zone-H",
-      "value": 1677.1238729588295,
-      "parent": "Residential"
+      "name": "F",
+      "value": 17.0,
+      "parent": "HOPA"
     },
     {
-      "name": "Zone-I",
-      "value": 8426.745570649975,
-      "parent": "Commercial"
+      "name": "F",
+      "value": 18.0,
+      "parent": "BOBA"
     },
     {
-      "name": "Zone-J",
-      "value": 11835.78812905818,
-      "parent": "Commercial"
-    },
-    {
-      "name": "Zone-K",
-      "value": 3919.6093570687062,
-      "parent": "Industrial"
-    },
-    {
-      "name": "Zone-L",
-      "value": 1001.9432983559258,
-      "parent": "Industrial"
-    },
-    {
-      "name": "Zone-M",
-      "value": 577.8747746681768,
-      "parent": "Residential"
-    },
-    {
-      "name": "Zone-N",
-      "value": 577.8747746681768,
-      "parent": "Commercial"
-    },
-    {
-      "name": "Zone-O",
-      "value": 3183.547063126649,
-      "parent": "Industrial"
+      "name": "K",
+      "value": 19.0,
+      "parent": "COBA"
     }
   ]
 }
