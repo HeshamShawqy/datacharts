@@ -1,8 +1,8 @@
 {
-  "updated": "2026-03-31 11:40:33",
+  "updated": "2026-03-31 12:27:39",
   "error": null,
   "config": {
-    "type": "treemap",
+    "type": "sankey",
     "title": "DASHBOARD",
     "subtitle": "Data Visualization",
     "units": "m²",
@@ -12,342 +12,342 @@
   "data": [
     {
       "name": "A",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "INDUSTRIAL",
-      "color": "#b18085",
-      "group_color": "#b8c0f5"
+      "color": "#9c6081",
+      "group_color": "#223ef2"
     },
     {
       "name": "B",
       "value": 1.0,
       "parent": "INDUSTRIAL",
-      "color": "#d6dbcc",
-      "group_color": "#b8c0f5"
+      "color": "#c1b7a9",
+      "group_color": "#223ef2"
     },
     {
       "name": "C",
       "value": 2.0,
       "parent": "INDUSTRIAL",
-      "color": "#c8d3be",
-      "group_color": "#b8c0f5"
+      "color": "#bbb89b",
+      "group_color": "#223ef2"
     },
     {
       "name": "D",
       "value": 3.0,
       "parent": "INDUSTRIAL",
-      "color": "#c9d5d7",
-      "group_color": "#b8c0f5"
+      "color": "#a7bdae",
+      "group_color": "#223ef2"
     },
     {
       "name": "E",
       "value": 4.0,
       "parent": "INDUSTRIAL",
-      "color": "#c19f9c",
-      "group_color": "#b8c0f5"
+      "color": "#ab7a87",
+      "group_color": "#223ef2"
     },
     {
       "name": "F",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "INDUSTRIAL",
-      "color": "#a57a84",
-      "group_color": "#dbc3c3"
+      "color": "#8c5f80",
+      "group_color": "#b03c3c"
     },
     {
       "name": "G",
       "value": 6.0,
       "parent": "INDUSTRIAL",
-      "color": "#a5b1c3",
-      "group_color": "#dbc3c3"
+      "color": "#84aaac",
+      "group_color": "#b03c3c"
     },
     {
       "name": "H",
       "value": 7.0,
       "parent": "INDUSTRIAL",
-      "color": "#97ad8c",
-      "group_color": "#dbc3c3"
+      "color": "#92976c",
+      "group_color": "#b03c3c"
     },
     {
       "name": "I",
       "value": 8.0,
       "parent": "INDUSTRIAL",
-      "color": "#d6dac5",
-      "group_color": "#dbc3c3"
+      "color": "#c2aca0",
+      "group_color": "#b03c3c"
     },
     {
       "name": "J",
       "value": 9.0,
       "parent": "INDUSTRIAL",
-      "color": "#bacdad",
-      "group_color": "#dbc3c3"
+      "color": "#b7b68a",
+      "group_color": "#b03c3c"
     },
     {
       "name": "K",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "INDUSTRIAL",
-      "color": "#a9b2ca",
-      "group_color": "#c8e6ca"
+      "color": "#86aab4",
+      "group_color": "#07f017"
     },
     {
       "name": "L",
       "value": 11.0,
       "parent": "INDUSTRIAL",
-      "color": "#aebfa3",
-      "group_color": "#c8e6ca"
+      "color": "#a7a782",
+      "group_color": "#07f017"
     },
     {
       "name": "M",
       "value": 12.0,
       "parent": "INDUSTRIAL",
-      "color": "#7fa875",
-      "group_color": "#c8e6ca"
+      "color": "#7e8f5a",
+      "group_color": "#07f017"
     },
     {
       "name": "N",
       "value": 13.0,
       "parent": "INDUSTRIAL",
-      "color": "#b2c9cf",
-      "group_color": "#c8e6ca"
+      "color": "#8fb9a0",
+      "group_color": "#07f017"
     },
     {
       "name": "O",
       "value": 14.0,
       "parent": "INDUSTRIAL",
-      "color": "#a38080",
-      "group_color": "#c8e6ca"
+      "color": "#8a6473",
+      "group_color": "#07f017"
     },
     {
       "name": "P",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "INDUSTRIAL",
-      "color": "#c2c4d6"
+      "color": "#9eafbf"
     },
     {
       "name": "Q",
       "value": 16.0,
       "parent": "INDUSTRIAL",
-      "color": "#c6afbd"
+      "color": "#a48eaf"
     },
     {
       "name": "R",
       "value": 17.0,
       "parent": "INDUSTRIAL",
-      "color": "#c4cbb5"
+      "color": "#b4a592"
     },
     {
       "name": "S",
       "value": 18.0,
       "parent": "OFFICE",
-      "color": "#afc6cb"
+      "color": "#8cb59d"
     },
     {
       "name": "T",
       "value": 19.0,
       "parent": "OFFICE",
-      "color": "#a9a6c4"
+      "color": "#848cae"
     },
     {
       "name": "U",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "OFFICE",
-      "color": "#cdbccb"
+      "color": "#a19bb4"
     },
     {
       "name": "V",
       "value": 21.0,
       "parent": "OFFICE",
-      "color": "#99aeb9"
+      "color": "#78a393"
     },
     {
       "name": "W",
       "value": 22.0,
       "parent": "OFFICE",
-      "color": "#d0bbb5"
+      "color": "#b99294"
     },
     {
       "name": "X",
       "value": 23.0,
       "parent": "OFFICE",
-      "color": "#ad7577"
+      "color": "#965974"
     },
     {
       "name": "Y",
       "value": 24.0,
       "parent": "OFFICE",
-      "color": "#9187af"
+      "color": "#686999"
     },
     {
       "name": "Z",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "OFFICE",
-      "color": "#ac8e90"
+      "color": "#956f82"
     },
     {
       "name": "AA",
       "value": 26.0,
       "parent": "OFFICE",
-      "color": "#c9b7c6"
+      "color": "#9f96b0"
     },
     {
       "name": "AB",
       "value": 27.0,
       "parent": "OFFICE",
-      "color": "#aeb98a"
+      "color": "#a58568"
     },
     {
       "name": "AC",
       "value": 28.0,
       "parent": "OFFICE",
-      "color": "#c6b4b7"
+      "color": "#ad93a3"
     },
     {
       "name": "AD",
       "value": 29.0,
       "parent": "OFFICE",
-      "color": "#c5d4c6"
+      "color": "#abbba3"
     },
     {
       "name": "AE",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "OFFICE",
-      "color": "#9a95b5"
+      "color": "#757d9f"
     },
     {
       "name": "AF",
       "value": 31.0,
       "parent": "OFFICE",
-      "color": "#8faf8a"
+      "color": "#879a6a"
     },
     {
       "name": "AG",
       "value": 32.0,
       "parent": "OFFICE",
-      "color": "#d2b9bf"
+      "color": "#bb95b2"
     },
     {
       "name": "AH",
       "value": 33.0,
       "parent": "OFFICE",
-      "color": "#a6b796"
+      "color": "#a09b75"
     },
     {
       "name": "AI",
       "value": 34.0,
       "parent": "OFFICE",
-      "color": "#b4b2cb"
+      "color": "#8f99b4"
     },
     {
       "name": "AJ",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "OFFICE",
-      "color": "#af797c"
+      "color": "#985b77"
     },
     {
       "name": "AK",
       "value": 36.0,
       "parent": "RESIDENTIAL",
-      "color": "#c5a8b5"
+      "color": "#aa86ae"
     },
     {
       "name": "AL",
       "value": 37.0,
       "parent": "RESIDENTIAL",
-      "color": "#8197aa"
+      "color": "#63948b"
     },
     {
       "name": "AM",
       "value": 38.0,
       "parent": "RESIDENTIAL",
-      "color": "#898ead"
+      "color": "#698598"
     },
     {
       "name": "AN",
       "value": 39.0,
       "parent": "RESIDENTIAL",
-      "color": "#a6c6a6"
+      "color": "#93b183"
     },
     {
       "name": "AO",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "RESIDENTIAL",
-      "color": "#c3d8c4"
+      "color": "#a9c09f"
     },
     {
       "name": "AP",
       "value": 41.0,
       "parent": "RESIDENTIAL",
-      "color": "#cfd8bd"
+      "color": "#c1b098"
     },
     {
       "name": "AQ",
       "value": 42.0,
       "parent": "RESIDENTIAL",
-      "color": "#d1b5ba"
+      "color": "#bb91ac"
     },
     {
       "name": "AR",
       "value": 43.0,
       "parent": "RESIDENTIAL",
-      "color": "#a8768a"
+      "color": "#8f5b8f"
     },
     {
       "name": "AS",
       "value": 44.0,
       "parent": "RESIDENTIAL",
-      "color": "#7f98a5"
+      "color": "#638d7d"
     },
     {
       "name": "AT",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "RESIDENTIAL",
-      "color": "#d1bdba"
+      "color": "#b9979d"
     },
     {
       "name": "AU",
       "value": 46.0,
       "parent": "RESIDENTIAL",
-      "color": "#cfb0b9"
+      "color": "#b98cb2"
     },
     {
       "name": "AV",
       "value": 47.0,
       "parent": "RESIDENTIAL",
-      "color": "#7d929c"
+      "color": "#638275"
     },
     {
       "name": "AW",
       "value": 48.0,
       "parent": "RESIDENTIAL",
-      "color": "#b09b95"
+      "color": "#997679"
     },
     {
       "name": "AX",
       "value": 49.0,
       "parent": "RESIDENTIAL",
-      "color": "#d5bed1"
+      "color": "#a99abe"
     },
     {
       "name": "AY",
-      "value": 110.0,
+      "value": 275.0,
       "parent": "RESIDENTIAL",
-      "color": "#82a57f"
+      "color": "#798d63"
     },
     {
       "name": "AZ",
       "value": 51.0,
       "parent": "RESIDENTIAL",
-      "color": "#98bf97"
+      "color": "#8baa75"
     },
     {
       "name": "BA",
       "value": 52.0,
       "parent": "RESIDENTIAL",
-      "color": "#8295a6"
+      "color": "#658e88"
     },
     {
       "name": "BB",
       "value": 53.0,
       "parent": "RESIDENTIAL",
-      "color": "#b6cbb2"
+      "color": "#a6b390"
     }
   ]
 }

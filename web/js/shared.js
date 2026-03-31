@@ -59,6 +59,31 @@ function sz(px) {
   return (px * fontScale) + "px";
 }
 
+function typeSize(role, dynamicPx) {
+  const base = {
+    groupTitle: 11,
+    groupTotal: 9,
+    itemName: 10.5,
+    itemValue: 8.8,
+    centerTitle: 13,
+    centerValue: 11,
+  };
+  const px = dynamicPx != null ? dynamicPx : (base[role] || 10);
+  return sz(px);
+}
+
+function typeWeight(role) {
+  const weights = {
+    groupTitle: "700",
+    groupTotal: "400",
+    itemName: "600",
+    itemValue: "400",
+    centerTitle: "700",
+    centerValue: "400",
+  };
+  return weights[role] || "400";
+}
+
 function formatNumber(value) {
   return numberFmt(+value || 0);
 }
@@ -214,7 +239,6 @@ function buildHierarchy(data) {
     }
     return row;
   });
-
   const parentNames = [...new Set(rows.map(d => d.parent).filter(Boolean))];
   const missing = parentNames.filter(p => !idByName.has(p));
   const all = [

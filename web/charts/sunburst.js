@@ -53,14 +53,15 @@ function drawSunburst(json, W, H, container) {
   lbls.exit().transition("data").duration(T / 2).attr("fill-opacity", 0).remove();
   const lblsE = lbls.enter().append("text").attr("class", "sun-lbl")
     .style("fill", "#fff").style("pointer-events", "none").style("text-anchor", "middle").attr("fill-opacity", 0);
-  lblsE.append("tspan").attr("class", "sun-name").attr("x", 0).attr("dy", "-0.25em").style("font-weight", "700");
+  lblsE.append("tspan").attr("class", "sun-name").attr("x", 0).attr("dy", "-0.25em").style("font-weight", typeWeight("itemName"));
   lblsE.append("tspan").attr("class", "sun-val").attr("x", 0).attr("dy", "1.15em").style("fill", "#ffffff");
   const lblsM = lblsE.merge(lbls);
   lblsM.select(".sun-name")
-    .style("font-size", d => sz(Math.max(5.5, Math.min(10, (d.x1 - d.x0) * radius * 0.42))))
+    .style("font-size", d => typeSize("itemName", Math.max(5.5, Math.min(10, (d.x1 - d.x0) * radius * 0.42))))
     .text(d => d.data.name);
   lblsM.select(".sun-val")
-    .style("font-size", d => sz(Math.max(5, Math.min(8.8, (d.x1 - d.x0) * radius * 0.3))))
+    .style("font-size", d => typeSize("itemValue", Math.max(5, Math.min(8.8, (d.x1 - d.x0) * radius * 0.3))))
+    .style("font-weight", typeWeight("itemValue"))
     .text(d => formatValue(d.value, true));
   lblsM.transition("data").duration(T).ease(d3.easeCubicInOut)
     .attrTween("transform", d => () => labelTransform(d.current))
@@ -75,12 +76,12 @@ function drawSunburst(json, W, H, container) {
   let cVal = g.select("text.sun-cval");
   if (cName.empty()) {
     cName = g.append("text").attr("class", "sun-cname").attr("text-anchor", "middle").attr("dy", "-0.4em")
-      .style("font-weight", "700").style("fill", "#333").style("pointer-events", "none");
+      .style("font-weight", typeWeight("centerTitle")).style("fill", "#333").style("pointer-events", "none");
     cVal = g.append("text").attr("class", "sun-cval").attr("text-anchor", "middle").attr("dy", "1em")
       .style("fill", "#666").style("pointer-events", "none");
   }
-  cName.style("font-size", sz(13));
-  cVal.style("font-size", sz(11));
+  cName.style("font-size", typeSize("centerTitle"));
+  cVal.style("font-size", typeSize("centerValue")).style("font-weight", typeWeight("centerValue"));
 
   function setCenter(node) {
     cName.text(node === root ? "Total" : node.data.name);

@@ -227,12 +227,15 @@ def build_rows(names_raw, values_raw, parents_raw, colors_raw=None, group_colors
         elif len(raw) >= count: return ([str(r) for r in raw[:count]] if to_str else list(raw[:count]))
         else:                   return ([""] * count if to_str else [None] * count)
 
-    def _lookup(mp, branches, path, i):
+    def _lookup(mp, branches, path, i, branch_count):
         """Path match first, then flat fallback, then index fallback."""
         r = mp.get(path)
         if r is not None: return r
         r = mp.get("flat")
-        if r is not None: return r
+        if r is not None:
+            if branch_count > 1 and len(r) == branch_count and i < len(r):
+                return [r[i]]
+            return r
         if i < len(branches): return branches[i][1]
         return []
 
@@ -248,10 +251,10 @@ def build_rows(names_raw, values_raw, parents_raw, colors_raw=None, group_colors
         if count == 0:
             continue
 
-        p_list = _resolve(_lookup(p_map, _p_branches, path, i), count, to_str=True)
-        c_list = _resolve(_lookup(c_map, _c_branches, path, i), count, to_str=False)
-        g_list = _resolve(_lookup(g_map, _g_branches, path, i), count, to_str=False)
-
+        branch_count = len(n_branches)
+        p_list = _resolve(_lookup(p_map, _p_branches, path, i, branch_count), count, to_str=True)
+        c_list = _resolve(_lookup(c_map, _c_branches, path, i, branch_count), count, to_str=False)
+        g_list = _resolve(_lookup(g_map, _g_branches, path, i, branch_count), count, to_str=False)
         for n, v, p, c, gc in zip(n_list[:count], v_list[:count], p_list, c_list, g_list):
             try:
                 row = {"name": str(n), "value": float(v)}
@@ -266,6 +269,46 @@ def build_rows(names_raw, values_raw, parents_raw, colors_raw=None, group_colors
                 rows.append(row)
             except (ValueError, TypeError):
                 stats["skipped_rows"] += 1
+
+    # if some rows are missing group colors, try to infer a stable parent -> color map
+    # this supports the common gh case where group_colors is provided as a short palette
+    # matching unique parent groups rather than every branch/item.
+    parent_order = []
+    for row in rows:
+        p = row.get("parent")
+        if p and p not in parent_order:
+            parent_order.append(p)
+
+    parent_color_map = {}
+    for row in rows:
+        p = row.get("parent")
+        gc = row.get("group_color")
+        if p and gc and p not in parent_color_map:
+            parent_color_map[p] = gc
+
+    if parent_order and len(parent_color_map) < len(parent_order):
+        supplied_group_colors = []
+        for _, branch_vals in _g_branches:
+            for v in branch_vals:
+                hex_gc = _color_to_hex(v)
+                if hex_gc:
+                    supplied_group_colors.append(hex_gc)
+
+        # use ordered unique palette only when it looks like a per-group color input.
+        if supplied_group_colors and len(supplied_group_colors) <= len(parent_order):
+            palette = []
+            for gc in supplied_group_colors:
+                if gc not in palette:
+                    palette.append(gc)
+            for i, parent_name in enumerate(parent_order):
+                if parent_name not in parent_color_map and i < len(palette):
+                    parent_color_map[parent_name] = palette[i]
+
+    if parent_color_map:
+        for row in rows:
+            p = row.get("parent")
+            if p and not row.get("group_color") and p in parent_color_map:
+                row["group_color"] = parent_color_map[p]
 
     return rows, stats
 

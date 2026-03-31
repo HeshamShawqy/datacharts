@@ -78,30 +78,30 @@ function drawSankey(json, W, H, container) {
   nodeM.select("text")
     .attr("x", d => d.is_group ? d.x0 - 8 : d.x1 + 8).attr("y", d => (d.y1 + d.y0) / 2)
     .attr("text-anchor", d => d.is_group ? "end" : "start")
-    .style("font-size", d => sz(d.is_group ? Math.max(labelFont + 0.8, 7.2) : labelFont))
+    .style("font-size", d => typeSize(d.is_group ? "groupTitle" : "itemName", d.is_group ? Math.max(labelFont + 0.5, 7.2) : labelFont))
     .each(function(d) {
       const t = d3.select(this);
       t.selectAll("*").remove();
       if (d.is_group) {
         t.append("tspan")
           .attr("dy", "-0.2em")
-          .style("font-weight", "800")
+          .style("font-weight", typeWeight("groupTitle"))
           .style("letter-spacing", "0.02em")
           .text(d.name.trim());
         t.append("tspan")
           .attr("x", d.x0 - 8)
           .attr("dy", "1.15em")
-          .style("font-size", sz(Math.max(labelFont - 0.4, 6)))
-          .style("font-weight", "400")
+          .style("font-size", typeSize("groupTotal", Math.max(labelFont - 0.4, 6)))
+          .style("font-weight", typeWeight("groupTotal"))
           .text(formatValue(d.value, true));
       } else {
         t.append("tspan")
           .attr("dy", "0.35em")
-          .style("font-weight", "700")
+          .style("font-weight", typeWeight("itemName"))
           .text(d.name.trim());
         t.append("tspan")
           .attr("dx", 4)
-          .style("font-weight", "400")
+          .style("font-weight", typeWeight("itemValue"))
           .text(formatValue(d.value, true));
       }
     });

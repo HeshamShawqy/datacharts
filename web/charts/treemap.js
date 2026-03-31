@@ -35,12 +35,13 @@ function drawTreemap(json, W, H, container) {
     const tg = el.append("g").attr("class", "cell-text").attr("clip-path", `url(#${uid})`);
     if (w > 45 && h > 25) {
       tg.append("text").attr("x", 8).attr("y", 18)
-        .style("font-size", sz(12)).style("font-weight", "600").style("fill", "#fff")
+        .style("font-size", typeSize("itemName", 11)).style("font-weight", typeWeight("itemName")).style("fill", "#fff")
         .text(d.data.name);
     }
     if (w > 40 && h > 24) {
       tg.append("text").attr("x", 8).attr("y", 34)
-        .style("font-size", sz(Math.max(6.5, Math.min(10, Math.min(w / 10, h / 4)))))
+        .style("font-size", typeSize("itemValue", Math.max(6.5, Math.min(9.5, Math.min(w / 10, h / 4)))))
+        .style("font-weight", typeWeight("itemValue"))
         .style("fill", "#ffffff")
         .text(formatValue(d.value, true));
     }
@@ -57,12 +58,14 @@ function drawTreemap(json, W, H, container) {
   pLabelsM.transition("data").duration(T)
     .style("opacity", 1);
   pLabelsM.select(".plabel-name").transition("data").duration(T)
-    .style("font-size", sz(11))
+    .style("font-size", typeSize("groupTitle"))
+    .style("font-weight", typeWeight("groupTitle"))
     .style("fill", d => groupColor(d.data, color(d.data.name)))
     .attr("x", d => d.x0 + 4).attr("y", d => d.y0 + 14)
     .text(d => d.data.name);
   pLabelsM.select(".plabel-total").transition("data").duration(T)
-    .style("font-size", sz(9))
+    .style("font-size", typeSize("groupTotal"))
+    .style("font-weight", typeWeight("groupTotal"))
     .attr("x", d => d.x0 + 4).attr("y", d => d.y0 + 30)
     .text(d => formatValue(d.value, true));
 

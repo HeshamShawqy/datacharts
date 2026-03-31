@@ -62,8 +62,8 @@ function drawCirclePack(json, W, H, container) {
     .attr("y", d => d.y - d.r - 18)
     .attr("text-anchor", "middle")
     .style("fill", d => groupColor(d.data, color(d.data.name)))
-    .style("font-weight", "700")
-    .style("font-size", sz(11))
+    .style("font-weight", typeWeight("groupTitle"))
+    .style("font-size", typeSize("groupTitle"))
     .text(d => d.data.name);
 
   labelGM.filter(d => d.children && d.parent)
@@ -72,7 +72,8 @@ function drawCirclePack(json, W, H, container) {
     .attr("y", d => d.y - d.r - 5)
     .attr("text-anchor", "middle")
     .style("fill", "#666")
-    .style("font-size", sz(9))
+    .style("font-size", typeSize("groupTotal"))
+    .style("font-weight", typeWeight("groupTotal"))
     .text(d => formatValue(d.value, true));
 
   labelGM.filter(d => !d.children)
@@ -81,15 +82,16 @@ function drawCirclePack(json, W, H, container) {
     .attr("text-anchor", "middle")
     .attr("dy", d => d.r > 18 ? "-0.15em" : "-0.05em")
     .style("fill", "#fff")
-    .style("font-weight", "600")
-    .style("font-size", d => sz(Math.max(6.5, Math.min(11, d.r * 0.32))))
+    .style("font-weight", typeWeight("itemName"))
+    .style("font-size", d => typeSize("itemName", Math.max(6.5, Math.min(11, d.r * 0.32))))
     .text(d => d.data.name !== "Total" ? d.data.name : "");
 
   labelGM.filter(d => !d.children)
     .append("text")
     .attr("x", d => d.x).attr("y", d => d.y)
     .attr("text-anchor", "middle").attr("dy", d => d.r > 18 ? "1.05em" : "0.95em")
-    .style("fill", "#ffffff").style("font-size", d => sz(Math.max(5.8, Math.min(10, d.r * 0.24))))
+    .style("fill", "#ffffff").style("font-weight", typeWeight("itemValue"))
+    .style("font-size", d => typeSize("itemValue", Math.max(5.8, Math.min(9.5, d.r * 0.24))))
     .text(d => formatValue(d.value, true));
 
   labelGM.selectAll("text").style("opacity", 0)

@@ -63,8 +63,8 @@ function drawBarChart(json, W, H, container) {
   const availH = H - margin.top - margin.bottom - nGroups * (GROUP_H + 2) - nSubgroups * (SUBGROUP_H + 2);
   const BAR_H = Math.max(10, Math.min(26, Math.floor(availH / Math.max(nBars, 1)) - 4));
   const BAR_PAD = Math.max(2, Math.floor(BAR_H * 0.18));
-  const nameFont = Math.max(7.5, Math.min(12, BAR_H * 0.78));
-  const valueFont = Math.max(6.8, Math.min(11, BAR_H * 0.72));
+  const nameFont = Math.max(7.5, Math.min(11, BAR_H * 0.78));
+  const valueFont = Math.max(6.8, Math.min(9.5, BAR_H * 0.72));
   let yPos = 0;
   rows.forEach(r => {
     r._y = yPos;
@@ -95,18 +95,18 @@ function drawBarChart(json, W, H, container) {
   const gh = g.selectAll(".group-header").data(grpData, d => d.name);
   gh.exit().transition("data").duration(T / 2).style("opacity", 0).remove();
   const ghE = gh.enter().append("g").attr("class", "group-header").style("opacity", 0);
-  ghE.append("text").attr("class", "group-title").style("font-size", sz(11)).style("font-weight", "700").style("letter-spacing", "0.06em");
-  ghE.append("text").attr("class", "group-total").style("font-size", sz(9)).style("fill", "#666");
+  ghE.append("text").attr("class", "group-title").style("font-size", typeSize("groupTitle")).style("font-weight", typeWeight("groupTitle")).style("letter-spacing", "0.06em");
+  ghE.append("text").attr("class", "group-total").style("font-size", typeSize("groupTotal")).style("font-weight", typeWeight("groupTotal")).style("fill", "#666");
   ghE.append("line").attr("stroke-width", 1).attr("opacity", 0.25);
   const ghM = ghE.merge(gh);
   ghM.transition("data").duration(T).style("opacity", 1);
   ghM.select(".group-title").transition("data").duration(T)
     .attr("x", -margin.left + 4).attr("y", d => d._y + 14)
-    .style("fill", d => groupColorByName.get(d.name) || color(d.name)).style("font-size", sz(11))
+    .style("fill", d => groupColorByName.get(d.name) || color(d.name)).style("font-size", typeSize("groupTitle"))
     .text(d => d.name.toUpperCase());
   ghM.select(".group-total").transition("data").duration(T)
     .attr("x", -margin.left + 4).attr("y", d => d._y + 27)
-    .style("font-size", sz(9))
+    .style("font-size", typeSize("groupTotal"))
     .text(d => formatValue(d.total, true));
   ghM.select("line").transition("data").duration(T)
     .attr("x1", -margin.left + 4).attr("x2", w)
@@ -117,18 +117,18 @@ function drawBarChart(json, W, H, container) {
   const sgh = g.selectAll(".subgroup-header").data(sghData, d => d.parent + ">" + d.name);
   sgh.exit().transition("data").duration(T / 2).style("opacity", 0).remove();
   const sghE = sgh.enter().append("g").attr("class", "subgroup-header").style("opacity", 0);
-  sghE.append("text").attr("class", "subgroup-title").style("font-size", sz(10)).style("font-weight", "600").style("letter-spacing", "0.03em");
-  sghE.append("text").attr("class", "subgroup-total").style("font-size", sz(8.5)).style("fill", "#666");
+  sghE.append("text").attr("class", "subgroup-title").style("font-size", typeSize("groupTitle", 10)).style("font-weight", typeWeight("itemName")).style("letter-spacing", "0.03em");
+  sghE.append("text").attr("class", "subgroup-total").style("font-size", typeSize("groupTotal", 8.5)).style("font-weight", typeWeight("groupTotal")).style("fill", "#666");
   sghE.append("line").attr("stroke-width", 1).attr("opacity", 0.2);
   const sghM = sghE.merge(sgh);
   sghM.transition("data").duration(T).style("opacity", 1);
   sghM.select(".subgroup-title").transition("data").duration(T)
     .attr("x", -margin.left + 20).attr("y", d => d._y + 11)
-    .style("fill", d => groupColorByName.get(d.parent) || color(d.parent)).style("font-size", sz(10))
+    .style("fill", d => groupColorByName.get(d.parent) || color(d.parent)).style("font-size", typeSize("groupTitle", 10))
     .text(d => d.name);
   sghM.select(".subgroup-total").transition("data").duration(T)
     .attr("x", -margin.left + 20).attr("y", d => d._y + 22)
-    .style("font-size", sz(8.5))
+    .style("font-size", typeSize("groupTotal", 8.5))
     .text(d => formatValue(d.total, true));
   sghM.select("line").transition("data").duration(T)
     .attr("x1", -margin.left + 20).attr("x2", w)
@@ -157,19 +157,19 @@ function drawBarChart(json, W, H, container) {
   const names = g.selectAll(".label-name").data(barData, d => (d.parent || "") + "|" + d.name);
   names.exit().transition("data").duration(T / 2).style("opacity", 0).remove();
   names.enter().append("text").attr("class", "label-name")
-    .attr("text-anchor", "end").style("font-size", sz(nameFont)).style("font-weight", "600").style("opacity", 0)
+    .attr("text-anchor", "end").style("font-size", typeSize("itemName", nameFont)).style("font-weight", typeWeight("itemName")).style("opacity", 0)
     .merge(names).transition("data").duration(T)
     .attr("x", -10).attr("y", d => d._y + BAR_H / 2 + 4)
-    .style("font-size", sz(nameFont)).style("opacity", 1)
+    .style("font-size", typeSize("itemName", nameFont)).style("opacity", 1)
     .text(d => d.name);
 
   const vals = g.selectAll(".label-val").data(barData, d => (d.parent || "") + "|" + d.name);
   vals.exit().transition("data").duration(T / 2).style("opacity", 0).remove();
   vals.enter().append("text").attr("class", "label-val")
-    .style("font-size", sz(valueFont)).style("fill", "#666").style("opacity", 0)
+    .style("font-size", typeSize("itemValue", valueFont)).style("font-weight", typeWeight("itemValue")).style("fill", "#666").style("opacity", 0)
     .merge(vals).transition("data").duration(T).ease(d3.easeCubicOut)
     .attr("x", d => x(d.value) + 8).attr("y", d => d._y + BAR_H / 2 + 4)
-    .style("font-size", sz(valueFont)).style("opacity", 1)
+    .style("font-size", typeSize("itemValue", valueFont)).style("opacity", 1)
     .text(d => formatValue(d.value, true));
 
   scheduleScreenshot(json.config);
