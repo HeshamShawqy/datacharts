@@ -411,7 +411,12 @@ try:
                 p = path.split('?')[0].split('#')[0]
                 if p == '/gh_dashboard.json':
                     return os.path.join(TEMP_DIR, 'gh_dashboard.json')
-                return super().translate_path(path)
+                result = super().translate_path(path)
+                if not os.path.isfile(result):
+                    flat = os.path.join(INSTALL_DIR, os.path.basename(p))
+                    if os.path.isfile(flat):
+                        return flat
+                return result
             def do_POST(self):
                 if self.path == "/screenshot":
                     n = int(self.headers.get("Content-Length", 0))
