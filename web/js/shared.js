@@ -203,6 +203,17 @@ function clearChart() {
   svg.call(zoom.transform, d3.zoomIdentity);
 }
 
+function showNoData() {
+  const el = document.getElementById("no-data-msg");
+  if (el) el.style.display = "flex";
+  clearChart();
+}
+
+function hideNoData() {
+  const el = document.getElementById("no-data-msg");
+  if (el) el.style.display = "none";
+}
+
 function refreshChart() {
   if (!latestJson) return;
   const wrap = document.getElementById("chart-wrap");

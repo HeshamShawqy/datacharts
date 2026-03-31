@@ -65,6 +65,15 @@ async function poll() {
       return;
     }
     hideErrorOverlay();
+    if (json.no_data) {
+      if (json.updated !== lastUpdated) {
+        lastUpdated = json.updated;
+        showNoData();
+      }
+      return;
+    }
+    hideNoData();
+    placeholderOn = false;
     if (!json.data || !Array.isArray(json.data)) return;
 
     const clean = json.data.filter(d => d.name != null && d.name !== "" && +d.value > 0);
@@ -80,8 +89,7 @@ async function poll() {
     hideErrorOverlay();
     if (!placeholderOn && lastUpdated === null) {
       placeholderOn = true;
-      latestJson = PLACEHOLDER;
-      refreshChart();
+      showNoData();
     }
   }
 }

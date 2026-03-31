@@ -177,7 +177,7 @@ def _empty_stats():
     }
 
 
-def _make_payload(chart_type, title, subtitle, units, width, font_scale, rows, error=None):
+def _make_payload(chart_type, title, subtitle, units, width, font_scale, rows, error=None, no_data=False):
     config = {
         "type":       chart_type,
         "title":      title,
@@ -187,10 +187,11 @@ def _make_payload(chart_type, title, subtitle, units, width, font_scale, rows, e
         "font_scale": font_scale,
     }
     content_hash = hashlib.md5(
-        json.dumps({"config": config, "data": rows, "error": error}, sort_keys=True).encode()
+        json.dumps({"config": config, "data": rows, "error": error, "no_data": no_data}, sort_keys=True).encode()
     ).hexdigest()[:12]
     return {
         "updated": content_hash,
+        "no_data": no_data,
         "error": error,
         "config": config,
         "data": rows,
@@ -535,7 +536,11 @@ try:
     else:
         if has_input and stats["skipped_rows"]:
             a = "no valid rows | skipped rows:{}".format(stats["skipped_rows"])
+            payload = _make_payload(_chart_type, _title, _subtitle, _units, _w, _font_scale, [], no_data=True)
+            write_json(OUTPUT_JSON, payload)
         else:
+            payload = _make_payload(_chart_type, _title, _subtitle, _units, _w, _font_scale, [], no_data=True)
+            write_json(OUTPUT_JSON, payload)
             a = "waiting for data..."
 
 except Exception:

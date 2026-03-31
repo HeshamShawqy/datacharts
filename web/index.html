@@ -104,6 +104,20 @@
     stroke-linejoin: round;
   }
   .ui-btn:hover { background: #f3f3f3; border-color: #b9b9b9; color: #111; }
+  #no-data-msg {
+    display: none;
+    position: absolute;
+    inset: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #no-data-msg .ndm-title { font-size: 15px; font-weight: 600; color: #999; }
+  #no-data-msg .ndm-sub   { font-size: 11px; color: #bbb; text-align: center; max-width: 220px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -121,6 +135,10 @@
 
 <div id="chart-wrap">
   <svg id="chart"></svg>
+  <div id="no-data-msg">
+    <div class="ndm-title">No data connected</div>
+    <div class="ndm-sub">Connect labels and values in Grasshopper to visualise your data</div>
+  </div>
 </div>
 <div id="err-overlay"></div>
 
