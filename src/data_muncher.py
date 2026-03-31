@@ -37,7 +37,7 @@ use_dev_web = False
 dev_web_dir = r"D:\00_HS\GSS24\code\New folder\datacharts\web"
 
 try:
-    import json, os, datetime, threading, traceback, tempfile
+    import json, os, datetime, threading, traceback, tempfile, hashlib
     import scriptcontext as sc
     import Rhino
     import Rhino.Display as rd
@@ -178,17 +178,21 @@ def _empty_stats():
 
 
 def _make_payload(chart_type, title, subtitle, units, width, font_scale, rows, error=None):
+    config = {
+        "type":       chart_type,
+        "title":      title,
+        "subtitle":   subtitle,
+        "units":      units,
+        "w":          width,
+        "font_scale": font_scale,
+    }
+    content_hash = hashlib.md5(
+        json.dumps({"config": config, "data": rows, "error": error}, sort_keys=True).encode()
+    ).hexdigest()[:12]
     return {
-        "updated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "updated": content_hash,
         "error": error,
-        "config": {
-            "type":       chart_type,
-            "title":      title,
-            "subtitle":   subtitle,
-            "units":      units,
-            "w":          width,
-            "font_scale": font_scale,
-        },
+        "config": config,
         "data": rows,
     }
 

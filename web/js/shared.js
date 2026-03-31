@@ -181,7 +181,7 @@ function updateHeader(json) {
   const subtitle = config.subtitle || "";
   titleEl.textContent = title;
   subtitleEl.textContent = subtitle;
-  metaEl.textContent = json.updated ? `updated ${json.updated}` : "";
+  metaEl.textContent = "";
   document.title = title;
 }
 

@@ -81,7 +81,7 @@ function drawCirclePack(json, W, H, container) {
     .attr("x", d => d.x).attr("y", d => d.y)
     .attr("text-anchor", "middle")
     .attr("dy", d => d.r > 18 ? "-0.15em" : "-0.05em")
-    .style("fill", "#fff")
+    .style("fill", "#000")
     .style("font-weight", typeWeight("itemName"))
     .style("font-size", d => typeSize("itemName", Math.max(6.5, Math.min(11, d.r * 0.32))))
     .text(d => d.data.name !== "Total" ? d.data.name : "");
@@ -90,7 +90,7 @@ function drawCirclePack(json, W, H, container) {
     .append("text")
     .attr("x", d => d.x).attr("y", d => d.y)
     .attr("text-anchor", "middle").attr("dy", d => d.r > 18 ? "1.05em" : "0.95em")
-    .style("fill", "#ffffff").style("font-weight", typeWeight("itemValue"))
+    .style("fill", "#000000").style("font-weight", typeWeight("itemValue"))
     .style("font-size", d => typeSize("itemValue", Math.max(5.8, Math.min(9.5, d.r * 0.24))))
     .text(d => formatValue(d.value, true));
 

@@ -52,9 +52,9 @@ function drawSunburst(json, W, H, container) {
   const lbls = g.selectAll("text.sun-lbl").data(descs, nodeKey);
   lbls.exit().transition("data").duration(T / 2).attr("fill-opacity", 0).remove();
   const lblsE = lbls.enter().append("text").attr("class", "sun-lbl")
-    .style("fill", "#fff").style("pointer-events", "none").style("text-anchor", "middle").attr("fill-opacity", 0);
+    .style("fill", "#000").style("pointer-events", "none").style("text-anchor", "middle").attr("fill-opacity", 0);
   lblsE.append("tspan").attr("class", "sun-name").attr("x", 0).attr("dy", "-0.25em").style("font-weight", typeWeight("itemName"));
-  lblsE.append("tspan").attr("class", "sun-val").attr("x", 0).attr("dy", "1.15em").style("fill", "#ffffff");
+  lblsE.append("tspan").attr("class", "sun-val").attr("x", 0).attr("dy", "1.15em").style("fill", "#000000");
   const lblsM = lblsE.merge(lbls);
   lblsM.select(".sun-name")
     .style("font-size", d => typeSize("itemName", Math.max(5.5, Math.min(10, (d.x1 - d.x0) * radius * 0.42))))

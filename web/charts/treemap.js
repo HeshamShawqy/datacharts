@@ -35,14 +35,14 @@ function drawTreemap(json, W, H, container) {
     const tg = el.append("g").attr("class", "cell-text").attr("clip-path", `url(#${uid})`);
     if (w > 45 && h > 25) {
       tg.append("text").attr("x", 8).attr("y", 18)
-        .style("font-size", typeSize("itemName", 11)).style("font-weight", typeWeight("itemName")).style("fill", "#fff")
+        .style("font-size", typeSize("itemName", 11)).style("font-weight", typeWeight("itemName")).style("fill", "#000")
         .text(d.data.name);
     }
     if (w > 40 && h > 24) {
       tg.append("text").attr("x", 8).attr("y", 34)
         .style("font-size", typeSize("itemValue", Math.max(6.5, Math.min(9.5, Math.min(w / 10, h / 4)))))
         .style("font-weight", typeWeight("itemValue"))
-        .style("fill", "#ffffff")
+        .style("fill", "#000000")
         .text(formatValue(d.value, true));
     }
   });
