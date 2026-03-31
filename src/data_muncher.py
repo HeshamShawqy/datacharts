@@ -15,8 +15,8 @@ INPUTS:
   subtitle   : str
   units      : str   - value units label (default: m²)
   enable     : bool  - show viewport overlay
-  x          : int   - viewport overlay X
-  y          : int   - viewport overlay Y
+  position_x : int   - viewport overlay X
+  position_y : int   - viewport overlay Y
   chart_size : int   - export bitmap width (px)
   font_scale : float
   viewport   : str   - Rhino viewport name (blank = Perspective)
@@ -30,14 +30,14 @@ a = "initializing..."
 
 _PFX = "DMUNCH_"
 
-# set this to true when you want to serve files straight from your repo web folder
+# set this to true to serve files straight from your repo web folder
 use_dev_web = False
 
 # this is only used when use_dev_web is true
 dev_web_dir = r"D:\00_HS\GSS24\code\New folder\datacharts\web"
 
 try:
-    import json, os, datetime, threading, traceback, tempfile, shutil
+    import json, os, datetime, threading, traceback, tempfile
     import scriptcontext as sc
     import Rhino
     import Rhino.Display as rd
@@ -107,21 +107,10 @@ def _find_web_source(extra=None):
     raise Exception("could not find source web folder")
 
 
-def _sync_tree(src, dst):
-    if os.path.isdir(dst):
-        shutil.rmtree(dst)
-    shutil.copytree(src, dst)
-
-
-def _ensure_work_dir(port, dev_mode, dev_dir):
-    if dev_mode:
-        return _find_web_source(dev_dir)
-
-    src_dir = _find_web_source()
-    temp_root = os.path.join(tempfile.gettempdir(), "data_muncher_{}".format(port))
-    work_dir = os.path.join(temp_root, "web")
-    _sync_tree(src_dir, work_dir)
-    return work_dir
+def _get_temp_dir(port):
+    d = os.path.join(tempfile.gettempdir(), "data_muncher", str(port))
+    os.makedirs(d, exist_ok=True)
+    return d
 
 
 def _find_icon_file():
@@ -242,11 +231,12 @@ def build_rows(names_raw, values_raw, parents_raw, colors_raw=None, group_colors
     for i, (path, n_list) in enumerate(n_branches):
         v_list = v_map.get(path, v_branches[i][1] if i < len(v_branches) else [])
         if len(n_list) != len(v_list):
-            stats["errors"].append(
-                "branch {} has {} labels but {} values, check the input lengths".format(
-                    path, len(n_list), len(v_list)
-                )
-            )
+            # stats["errors"].append(
+            #     "branch {} has {} labels but {} values, check the input lengths".format(
+            #         path, len(n_list), len(v_list)
+            #     )
+            # )
+            stats["errors"].append("Data mismatch")
         count  = min(len(n_list), len(v_list))
         if count == 0:
             continue
@@ -343,7 +333,7 @@ def teardown():
 
     for key in [
         "STARTED", "FORM", "HTTPD", "IDLE", "CH", "BMP",
-        "PNG_BYTES", "NEEDS_REDRAW", "ERR", "SERVE_MODE", "WORK_DIR",
+        "PNG_BYTES", "NEEDS_REDRAW", "ERR",
     ]:
         sc.sticky.pop(_PFX + key, None)
 
@@ -364,18 +354,18 @@ try:
     _parents    = g.get("groups")
     _colors     = g.get("item_colors")
     _group_colors = g.get("group_colors")
-    _chart_type = str(g.get("chart_type") or "treemap").lower()
+    _chart_type_raw = str(g.get("chart_type") or "").strip().lower()
+    _chart_type = _chart_type_raw if _chart_type_raw else sc.sticky.get(_PFX + "CHART_TYPE", "treemap")
+    sc.sticky[_PFX + "CHART_TYPE"] = _chart_type
     _title      = str(g.get("title")      or "Grasshopper Dashboard")
     _subtitle   = str(g.get("subtitle")   or "Live Data Feed")
     _units      = str(g.get("units")      or "m²")
     _font_scale = float(g.get("font_scale") or 1.0)
     _enable     = g.get("enable", True)
-    _x          = int(g.get("x") or 20)
-    _y          = int(g.get("y") or 60)
+    _x          = int(g.get("position_x") or 20)
+    _y          = int(g.get("position_y") or 60)
     _w          = int(g.get("chart_size") or 500)
     _viewport   = str(g.get("viewport") or "").strip()
-    _dev_mode   = bool(use_dev_web)
-    _dev_dir    = str(dev_web_dir or "").strip()
 
     if _trigger == "reset":
         teardown()
@@ -398,16 +388,9 @@ try:
     PORT = sc.sticky[_PFX + "PORT"]
     URL  = "http://127.0.0.1:{}".format(PORT)
 
-    mode_key = "dev" if _dev_mode else "temp"
-    prev_mode = sc.sticky.get(_PFX + "SERVE_MODE")
-    if prev_mode and prev_mode != mode_key:
-        teardown()
-        sc.sticky[_PFX + "PORT"] = PORT
-
-    WORK_DIR    = _ensure_work_dir(PORT, _dev_mode, _dev_dir)
-    OUTPUT_JSON = os.path.join(WORK_DIR, "gh_dashboard.json")
-    sc.sticky[_PFX + "SERVE_MODE"] = mode_key
-    sc.sticky[_PFX + "WORK_DIR"] = WORK_DIR
+    INSTALL_DIR = _find_web_source()
+    TEMP_DIR    = _get_temp_dir(PORT)
+    OUTPUT_JSON = os.path.join(TEMP_DIR, "gh_dashboard.json")
 
     if _PFX + "LOCK" not in sc.sticky:
         sc.sticky[_PFX + "LOCK"] = threading.Lock()
@@ -415,11 +398,15 @@ try:
 
     # this part starts the local server and the preview window
     if _PFX + "STARTED" not in sc.sticky:
-        _serve_dir = WORK_DIR
 
         class _H(SimpleHTTPRequestHandler):
             def __init__(self, *a, **kw):
-                super().__init__(*a, directory=_serve_dir, **kw)
+                super().__init__(*a, directory=INSTALL_DIR, **kw)
+            def translate_path(self, path):
+                p = path.split('?')[0].split('#')[0]
+                if p == '/gh_dashboard.json':
+                    return os.path.join(TEMP_DIR, 'gh_dashboard.json')
+                return super().translate_path(path)
             def do_POST(self):
                 if self.path == "/screenshot":
                     n = int(self.headers.get("Content-Length", 0))
