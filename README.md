@@ -33,10 +33,10 @@ Grasshopper
               └── serves index.html + data
                     └── Eto.WebView panel opens inside Rhino
                           └── D3.js renders live charts
-                                └── auto-refreshes every 2s
+                                └── auto-refreshes every 1s
 ```
 
-The architecture is deliberately lightweight. No cloud. No external dependencies at runtime. The browser talks to `localhost` — everything stays on your machine.
+The architecture is deliberately lightweight. No cloud. No external dependencies at runtime. The browser talks to `localhost` and everything stays on your machine.
 
 ---
 
@@ -55,13 +55,13 @@ The architecture is deliberately lightweight. No cloud. No external dependencies
 1. Clone the repo
 2. Open the `.gh` file in Rhino 8 + Grasshopper
 3. Connect your data (names, values, parents lists) to the GhPython component
-4. **Update the file paths** inside `gh_component_viewport.py` — specifically `SERVE_DIR` to point to your local clone directory
+4. If the component does not find the `web` folder automatically, set `serve_dir` to your local `web` folder
 5. Reset Rhino if needed
 6. Set `enable` to `True` and run
 
-The Eto panel will open automatically and the dashboard will appear. If you just want to test with sample data, the repo includes `gh_dashboard.json` with a working dataset - open `index.html` directly in a browser to see it render.
+The Eto panel will open automatically and the dashboard will appear. If you just want to test with sample data, the repo includes `web/gh_dashboard.json` with a working dataset - open `web/index.html` directly in a browser to see it render.
 
-> No internet required once D3.js is cached. For fully offline use, download `d3.min.js` locally and update the script src in `index.html`.
+> This repo already includes local copies of D3, so it can run fully offline.
 
 ---
 
@@ -70,7 +70,7 @@ The Eto panel will open automatically and the dashboard will appear. If you just
 - Rhino 8
 - Grasshopper + GhPython
 - Python standard library (`http.server`, `json`, `threading`)
-- D3.js v7 via CDN - loaded once, cached by browser
+- D3.js v7 from local files in `web/`
 
 ---
 

@@ -3,13 +3,14 @@ Data Muncher - Grasshopper Dashboard Component
 Rhino 8 Script Component
 
 INPUTS:
-  names      : DataTree / List str    - display labels
+  labels      : DataTree / List str    - display labels
   values     : DataTree / List float  - numeric values
-  parents    : DataTree / List str    - grouping category (optional)
+  groups    : DataTree / List str    - grouping category (optional)
                Case A: same branch count & item count as names/values → 1-to-1
                Case B: same branch count, 1 item per branch → broadcast
-  colors     : DataTree / List Color  - per-item colours (optional, same Cases A/B)
-  chart_type : str   - treemap | bar | pack | pie | sunburst | sankey
+  item_colors     : DataTree / List Color  - per-item colours (optional, same Cases A/B)
+  group_colors : DataTree / List Color - per-group colours (optional, same Cases A/B)
+  chart_type : str   - treemap | bar | pack | sunburst | sankey
   title      : str
   subtitle   : str
   units      : str   - value units label (default: m²)
@@ -29,8 +30,14 @@ a = "initializing..."
 
 _PFX = "DMUNCH_"
 
+# set this to true when you want to serve files straight from your repo web folder
+use_dev_web = False
+
+# this is only used when use_dev_web is true
+dev_web_dir = r"D:\00_HS\GSS24\code\New folder\datacharts\web"
+
 try:
-    import json, os, datetime, threading, traceback
+    import json, os, datetime, threading, traceback, tempfile, shutil
     import scriptcontext as sc
     import Rhino
     import Rhino.Display as rd
@@ -44,12 +51,105 @@ except Exception as ex:
     raise
 
 
-def _get_pkg_dir():
-    return r"D:\00_HS\GSS24\code\New folder\datacharts\web"
+def _get_doc_dir():
+    try:
+        doc = ghenv.Component.OnPingDocument()
+        if doc and doc.FilePath:
+            return os.path.dirname(doc.FilePath)
+    except:
+        pass
+    return None
 
 
-def _ensure_work_dir(port):
-    return _get_pkg_dir()
+def _find_web_source(extra=None):
+    candidates = []
+    if extra:
+        candidates.append(str(extra))
+
+    try:
+        for lib in Grasshopper.Instances.ComponentServer.Libraries:
+            name = (lib.Name or "").lower()
+            if "data_muncher" in name or "datamuncher" in name:
+                root = os.path.dirname(lib.Location)
+                candidates.append(os.path.join(root, "shared"))
+                candidates.append(os.path.join(root, "web"))
+                candidates.append(root)
+    except:
+        pass
+
+    try:
+        asm = ghenv.Component.GetType().Assembly.Location
+        if asm:
+            root = os.path.dirname(asm)
+            candidates.append(os.path.join(root, "shared"))
+            candidates.append(os.path.join(root, "web"))
+            candidates.append(root)
+    except:
+        pass
+
+    doc_dir = _get_doc_dir()
+    if doc_dir:
+        candidates.append(os.path.join(doc_dir, "web"))
+        candidates.append(os.path.abspath(os.path.join(doc_dir, "..", "web")))
+
+    cwd = os.getcwd()
+    candidates.append(os.path.join(cwd, "web"))
+    candidates.append(cwd)
+
+    for path in candidates:
+        try:
+            full = os.path.abspath(path)
+            if os.path.isdir(full) and os.path.isfile(os.path.join(full, "index.html")):
+                return full
+        except:
+            pass
+
+    raise Exception("could not find source web folder")
+
+
+def _sync_tree(src, dst):
+    if os.path.isdir(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(src, dst)
+
+
+def _ensure_work_dir(port, dev_mode, dev_dir):
+    if dev_mode:
+        return _find_web_source(dev_dir)
+
+    src_dir = _find_web_source()
+    temp_root = os.path.join(tempfile.gettempdir(), "data_muncher_{}".format(port))
+    work_dir = os.path.join(temp_root, "web")
+    _sync_tree(src_dir, work_dir)
+    return work_dir
+
+
+def _find_icon_file():
+    candidates = []
+
+    try:
+        asm = ghenv.Component.GetType().Assembly.Location
+        if asm:
+            root = os.path.dirname(asm)
+            candidates.append(os.path.join(root, "assets", "data_muncher.png"))
+            candidates.append(os.path.join(root, "shared", "data_muncher.png"))
+            candidates.append(os.path.join(root, "shared", "assets", "data_muncher.png"))
+    except:
+        pass
+
+    cwd = os.getcwd()
+    candidates.append(os.path.join(cwd, "assets", "data_muncher.png"))
+    candidates.append(os.path.join(cwd, "data_muncher.png"))
+
+    for path in candidates:
+        try:
+            full = os.path.abspath(path)
+            if os.path.isfile(full):
+                return full
+        except:
+            pass
+
+    return None
 
 
 # ── DataTree helpers ──────────────────────────────────────────────────────────
@@ -70,7 +170,40 @@ def _color_to_hex(c):
     try:    return "#{:02x}{:02x}{:02x}".format(int(c.R), int(c.G), int(c.B))
     except: return None
 
-def build_rows(names_raw, values_raw, parents_raw, colors_raw=None):
+
+def _branch_map(raw):
+    if _is_tree(raw):
+        branches = _tree_branches(raw)
+    elif raw:
+        branches = _flat_branches(raw)
+    else:
+        branches = []
+    return branches, dict(branches)
+
+
+def _empty_stats():
+    return {
+        "skipped_rows": 0,
+        "errors": [],
+    }
+
+
+def _make_payload(chart_type, title, subtitle, units, width, font_scale, rows, error=None):
+    return {
+        "updated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "error": error,
+        "config": {
+            "type":       chart_type,
+            "title":      title,
+            "subtitle":   subtitle,
+            "units":      units,
+            "w":          width,
+            "font_scale": font_scale,
+        },
+        "data": rows,
+    }
+
+def build_rows(names_raw, values_raw, parents_raw, colors_raw=None, group_colors_raw=None):
     """Always yields leaf-level rows {name, value, ?parent, ?color}.
 
     Parent/color matching per branch:
@@ -80,28 +213,13 @@ def build_rows(names_raw, values_raw, parents_raw, colors_raw=None):
     n_branches = _tree_branches(names_raw)  if _is_tree(names_raw)  else _flat_branches(names_raw)
     v_branches = _tree_branches(values_raw) if _is_tree(values_raw) else _flat_branches(values_raw)
 
-    if _is_tree(parents_raw):
-        _p_branches = _tree_branches(parents_raw)
-        p_map = dict(_p_branches)
-    elif parents_raw:
-        _p_branches = _flat_branches(parents_raw)
-        p_map = dict(_p_branches)
-    else:
-        _p_branches = []
-        p_map = {}
-
-    if _is_tree(colors_raw):
-        _c_branches = _tree_branches(colors_raw)
-        c_map = dict(_c_branches)
-    elif colors_raw:
-        _c_branches = _flat_branches(colors_raw)
-        c_map = dict(_c_branches)
-    else:
-        _c_branches = []
-        c_map = {}
+    _p_branches, p_map = _branch_map(parents_raw)
+    _c_branches, c_map = _branch_map(colors_raw)
+    _g_branches, g_map = _branch_map(group_colors_raw)
 
     v_map = dict(v_branches)
     rows  = []
+    stats = _empty_stats()
 
     def _resolve(raw, count, to_str=True):
         """Apply Case A / Case B / empty for any optional per-branch list."""
@@ -120,14 +238,21 @@ def build_rows(names_raw, values_raw, parents_raw, colors_raw=None):
 
     for i, (path, n_list) in enumerate(n_branches):
         v_list = v_map.get(path, v_branches[i][1] if i < len(v_branches) else [])
+        if len(n_list) != len(v_list):
+            stats["errors"].append(
+                "branch {} has {} labels but {} values, check the input lengths".format(
+                    path, len(n_list), len(v_list)
+                )
+            )
         count  = min(len(n_list), len(v_list))
         if count == 0:
             continue
 
         p_list = _resolve(_lookup(p_map, _p_branches, path, i), count, to_str=True)
         c_list = _resolve(_lookup(c_map, _c_branches, path, i), count, to_str=False)
+        g_list = _resolve(_lookup(g_map, _g_branches, path, i), count, to_str=False)
 
-        for n, v, p, c in zip(n_list[:count], v_list[:count], p_list, c_list):
+        for n, v, p, c, gc in zip(n_list[:count], v_list[:count], p_list, c_list, g_list):
             try:
                 row = {"name": str(n), "value": float(v)}
                 if str(p).strip():
@@ -135,21 +260,67 @@ def build_rows(names_raw, values_raw, parents_raw, colors_raw=None):
                 hex_c = _color_to_hex(c) if c is not None else None
                 if hex_c:
                     row["color"] = hex_c
+                hex_gc = _color_to_hex(gc) if gc is not None else None
+                if hex_gc:
+                    row["group_color"] = hex_gc
                 rows.append(row)
             except (ValueError, TypeError):
-                pass
+                stats["skipped_rows"] += 1
 
-    return rows
+    return rows, stats
+
+
+def teardown():
+    idle = sc.sticky.get(_PFX + "IDLE")
+    if idle:
+        try: Rhino.RhinoApp.Idle -= idle
+        except: pass
+
+    ch = sc.sticky.get(_PFX + "CH")
+    if ch:
+        try: rd.DisplayPipeline.DrawForeground -= ch
+        except: pass
+
+    httpd = sc.sticky.get(_PFX + "HTTPD")
+    if httpd:
+        try: httpd.shutdown()
+        except: pass
+        try: httpd.server_close()
+        except: pass
+
+    bmp = sc.sticky.get(_PFX + "BMP")
+    if bmp:
+        try: bmp.Dispose()
+        except: pass
+
+    frm = sc.sticky.get(_PFX + "FORM")
+    if frm:
+        try: frm.Close()
+        except: pass
+
+    for key in [
+        "STARTED", "FORM", "HTTPD", "IDLE", "CH", "BMP",
+        "PNG_BYTES", "NEEDS_REDRAW", "ERR", "SERVE_MODE", "WORK_DIR",
+    ]:
+        sc.sticky.pop(_PFX + key, None)
+
+
+def write_json(path, payload):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2, ensure_ascii=False)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 try:
+    # this part reads the current gh inputs and local dev settings
     g = globals()
-    _names      = g.get("names")
+    _trigger    = str(g.get("trigger") or "").strip().lower()
+    _names      = g.get("labels")
     _values     = g.get("values")
-    _parents    = g.get("parents")
-    _colors     = g.get("colors")
+    _parents    = g.get("groups")
+    _colors     = g.get("item_colors")
+    _group_colors = g.get("group_colors")
     _chart_type = str(g.get("chart_type") or "treemap").lower()
     _title      = str(g.get("title")      or "Grasshopper Dashboard")
     _subtitle   = str(g.get("subtitle")   or "Live Data Feed")
@@ -160,7 +331,15 @@ try:
     _y          = int(g.get("y") or 60)
     _w          = int(g.get("chart_size") or 500)
     _viewport   = str(g.get("viewport") or "").strip()
+    _dev_mode   = bool(use_dev_web)
+    _dev_dir    = str(dev_web_dir or "").strip()
 
+    if _trigger == "reset":
+        teardown()
+        a = "reset complete"
+        raise SystemExit
+
+    # this part stores the overlay settings Rhino needs between runs
     sc.sticky[_PFX + "ENABLED"]  = bool(_enable)
     sc.sticky[_PFX + "X"]        = _x
     sc.sticky[_PFX + "Y"]        = _y
@@ -176,14 +355,22 @@ try:
     PORT = sc.sticky[_PFX + "PORT"]
     URL  = "http://127.0.0.1:{}".format(PORT)
 
-    WORK_DIR    = _ensure_work_dir(PORT)
+    mode_key = "dev" if _dev_mode else "temp"
+    prev_mode = sc.sticky.get(_PFX + "SERVE_MODE")
+    if prev_mode and prev_mode != mode_key:
+        teardown()
+        sc.sticky[_PFX + "PORT"] = PORT
+
+    WORK_DIR    = _ensure_work_dir(PORT, _dev_mode, _dev_dir)
     OUTPUT_JSON = os.path.join(WORK_DIR, "gh_dashboard.json")
+    sc.sticky[_PFX + "SERVE_MODE"] = mode_key
+    sc.sticky[_PFX + "WORK_DIR"] = WORK_DIR
 
     if _PFX + "LOCK" not in sc.sticky:
         sc.sticky[_PFX + "LOCK"] = threading.Lock()
     _lock = sc.sticky[_PFX + "LOCK"]
 
-    # ── server + form ─────────────────────────────────────────────────────────
+    # this part starts the local server and the preview window
     if _PFX + "STARTED" not in sc.sticky:
         _serve_dir = WORK_DIR
 
@@ -217,6 +404,12 @@ try:
         _form.Size    = ed.Size(1100, 750)
         _form.Topmost = True
         _form.Content = _wv
+        _icon_file = _find_icon_file()
+        if _icon_file:
+            try:
+                _form.Icon = ed.Icon(_icon_file)
+            except:
+                pass
 
         def _on_loaded(sender, e):
             try: _wv.ExecuteScript("window.__GH_PORT={}".format(PORT))
@@ -232,13 +425,14 @@ try:
         _form.Show()
         sc.sticky[_PFX + "STARTED"] = True
         sc.sticky[_PFX + "FORM"]    = _form
+        sc.sticky[_PFX + "HTTPD"]   = _httpd
         Rhino.RhinoApp.WriteLine("[DataMuncher] Ready on port {}".format(PORT))
 
     _frm = sc.sticky.get(_PFX + "FORM")
-    if _frm is not None and _enable:
-        _frm.Visible = True
+    if _frm is not None:
+        _frm.Visible = bool(_enable)
 
-    # ── bitmap pipeline ───────────────────────────────────────────────────────
+    # this part turns browser screenshots into a Rhino display bitmap
     if _PFX + "IDLE" not in sc.sticky:
         def _idle(sender, e):
             needs = False
@@ -265,6 +459,7 @@ try:
         Rhino.RhinoApp.Idle += _idle
         sc.sticky[_PFX + "IDLE"] = _idle
 
+    # this part draws the latest bitmap into the chosen Rhino viewport
     if _PFX + "CH" not in sc.sticky:
         def _draw(sender, e):
             if not sc.sticky.get(_PFX + "ENABLED", True): return
@@ -282,28 +477,32 @@ try:
         rd.DisplayPipeline.DrawForeground += _draw
         sc.sticky[_PFX + "CH"] = _draw
 
-    # ── data → JSON ───────────────────────────────────────────────────────────
-    rows = build_rows(_names, _values, _parents, _colors) if (_names and _values) else []
+    # this part packs the gh data into the json file the browser reads
+    has_input = _names is not None and _values is not None
+    rows, stats = build_rows(_names, _values, _parents, _colors, _group_colors) if has_input else ([], _empty_stats())
 
-    if rows:
-        payload = {
-            "updated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "config": {
-                "type":       _chart_type,
-                "title":      _title,
-                "subtitle":   _subtitle,
-                "units":      _units,
-                "w":          _w,
-                "font_scale": _font_scale,
-            },
-            "data": rows,
-        }
-        with open(OUTPUT_JSON, "w") as f:
-            json.dump(payload, f, indent=2)
+    if stats["errors"]:
+        message = " | ".join(stats["errors"][:3])
+        payload = _make_payload(_chart_type, _title, _subtitle, _units, _w, _font_scale, [], error=message)
+        write_json(OUTPUT_JSON, payload)
+        a = "input error | " + message
+    elif rows:
+        payload = _make_payload(_chart_type, _title, _subtitle, _units, _w, _font_scale, rows)
+        write_json(OUTPUT_JSON, payload)
+
+        notes = []
+        if stats["skipped_rows"]:
+            notes.append("skipped rows:{}".format(stats["skipped_rows"]))
+
         a = "OK | {} rows | {} | overlay:{}".format(
             len(rows), _chart_type.upper(), "ON" if _enable else "OFF")
+        if notes:
+            a += " | " + " | ".join(notes)
     else:
-        a = "waiting for data..."
+        if has_input and stats["skipped_rows"]:
+            a = "no valid rows | skipped rows:{}".format(stats["skipped_rows"])
+        else:
+            a = "waiting for data..."
 
 except Exception:
     a = "ERROR: " + traceback.format_exc()

@@ -1,63 +1,353 @@
 {
-  "updated": "2026-03-30 12:36:58",
+  "updated": "2026-03-31 11:40:33",
+  "error": null,
   "config": {
-    "type": "sankey",
-    "title": "Grasshopper Dashboard",
-    "subtitle": "Live Data Feed",
-    "units": "m\u00b2",
-    "w": 98,
-    "font_scale": 1.0
+    "type": "treemap",
+    "title": "DASHBOARD",
+    "subtitle": "Data Visualization",
+    "units": "m²",
+    "w": 539,
+    "font_scale": 1.448
   },
   "data": [
     {
       "name": "A",
-      "value": 10.0,
-      "parent": "INDUSTRIAL"
-    },
-    {
-      "name": "A",
-      "value": 11.0,
-      "parent": "OFFICE"
+      "value": 110.0,
+      "parent": "INDUSTRIAL",
+      "color": "#b18085",
+      "group_color": "#b8c0f5"
     },
     {
       "name": "B",
-      "value": 12.0,
-      "parent": "RESIDENTIAL"
+      "value": 1.0,
+      "parent": "INDUSTRIAL",
+      "color": "#d6dbcc",
+      "group_color": "#b8c0f5"
     },
     {
-      "name": "B",
-      "value": 13.0,
-      "parent": "COMMERCIAL"
+      "name": "C",
+      "value": 2.0,
+      "parent": "INDUSTRIAL",
+      "color": "#c8d3be",
+      "group_color": "#b8c0f5"
     },
     {
       "name": "D",
-      "value": 14.0,
-      "parent": "MASSING"
+      "value": 3.0,
+      "parent": "INDUSTRIAL",
+      "color": "#c9d5d7",
+      "group_color": "#b8c0f5"
     },
     {
       "name": "E",
-      "value": 15.0,
-      "parent": "CONCEPT"
+      "value": 4.0,
+      "parent": "INDUSTRIAL",
+      "color": "#c19f9c",
+      "group_color": "#b8c0f5"
     },
     {
       "name": "F",
-      "value": 16.0,
-      "parent": "PLAUY"
+      "value": 110.0,
+      "parent": "INDUSTRIAL",
+      "color": "#a57a84",
+      "group_color": "#dbc3c3"
     },
     {
-      "name": "F",
-      "value": 17.0,
-      "parent": "HOPA"
+      "name": "G",
+      "value": 6.0,
+      "parent": "INDUSTRIAL",
+      "color": "#a5b1c3",
+      "group_color": "#dbc3c3"
     },
     {
-      "name": "F",
-      "value": 18.0,
-      "parent": "BOBA"
+      "name": "H",
+      "value": 7.0,
+      "parent": "INDUSTRIAL",
+      "color": "#97ad8c",
+      "group_color": "#dbc3c3"
+    },
+    {
+      "name": "I",
+      "value": 8.0,
+      "parent": "INDUSTRIAL",
+      "color": "#d6dac5",
+      "group_color": "#dbc3c3"
+    },
+    {
+      "name": "J",
+      "value": 9.0,
+      "parent": "INDUSTRIAL",
+      "color": "#bacdad",
+      "group_color": "#dbc3c3"
     },
     {
       "name": "K",
+      "value": 110.0,
+      "parent": "INDUSTRIAL",
+      "color": "#a9b2ca",
+      "group_color": "#c8e6ca"
+    },
+    {
+      "name": "L",
+      "value": 11.0,
+      "parent": "INDUSTRIAL",
+      "color": "#aebfa3",
+      "group_color": "#c8e6ca"
+    },
+    {
+      "name": "M",
+      "value": 12.0,
+      "parent": "INDUSTRIAL",
+      "color": "#7fa875",
+      "group_color": "#c8e6ca"
+    },
+    {
+      "name": "N",
+      "value": 13.0,
+      "parent": "INDUSTRIAL",
+      "color": "#b2c9cf",
+      "group_color": "#c8e6ca"
+    },
+    {
+      "name": "O",
+      "value": 14.0,
+      "parent": "INDUSTRIAL",
+      "color": "#a38080",
+      "group_color": "#c8e6ca"
+    },
+    {
+      "name": "P",
+      "value": 110.0,
+      "parent": "INDUSTRIAL",
+      "color": "#c2c4d6"
+    },
+    {
+      "name": "Q",
+      "value": 16.0,
+      "parent": "INDUSTRIAL",
+      "color": "#c6afbd"
+    },
+    {
+      "name": "R",
+      "value": 17.0,
+      "parent": "INDUSTRIAL",
+      "color": "#c4cbb5"
+    },
+    {
+      "name": "S",
+      "value": 18.0,
+      "parent": "OFFICE",
+      "color": "#afc6cb"
+    },
+    {
+      "name": "T",
       "value": 19.0,
-      "parent": "COBA"
+      "parent": "OFFICE",
+      "color": "#a9a6c4"
+    },
+    {
+      "name": "U",
+      "value": 110.0,
+      "parent": "OFFICE",
+      "color": "#cdbccb"
+    },
+    {
+      "name": "V",
+      "value": 21.0,
+      "parent": "OFFICE",
+      "color": "#99aeb9"
+    },
+    {
+      "name": "W",
+      "value": 22.0,
+      "parent": "OFFICE",
+      "color": "#d0bbb5"
+    },
+    {
+      "name": "X",
+      "value": 23.0,
+      "parent": "OFFICE",
+      "color": "#ad7577"
+    },
+    {
+      "name": "Y",
+      "value": 24.0,
+      "parent": "OFFICE",
+      "color": "#9187af"
+    },
+    {
+      "name": "Z",
+      "value": 110.0,
+      "parent": "OFFICE",
+      "color": "#ac8e90"
+    },
+    {
+      "name": "AA",
+      "value": 26.0,
+      "parent": "OFFICE",
+      "color": "#c9b7c6"
+    },
+    {
+      "name": "AB",
+      "value": 27.0,
+      "parent": "OFFICE",
+      "color": "#aeb98a"
+    },
+    {
+      "name": "AC",
+      "value": 28.0,
+      "parent": "OFFICE",
+      "color": "#c6b4b7"
+    },
+    {
+      "name": "AD",
+      "value": 29.0,
+      "parent": "OFFICE",
+      "color": "#c5d4c6"
+    },
+    {
+      "name": "AE",
+      "value": 110.0,
+      "parent": "OFFICE",
+      "color": "#9a95b5"
+    },
+    {
+      "name": "AF",
+      "value": 31.0,
+      "parent": "OFFICE",
+      "color": "#8faf8a"
+    },
+    {
+      "name": "AG",
+      "value": 32.0,
+      "parent": "OFFICE",
+      "color": "#d2b9bf"
+    },
+    {
+      "name": "AH",
+      "value": 33.0,
+      "parent": "OFFICE",
+      "color": "#a6b796"
+    },
+    {
+      "name": "AI",
+      "value": 34.0,
+      "parent": "OFFICE",
+      "color": "#b4b2cb"
+    },
+    {
+      "name": "AJ",
+      "value": 110.0,
+      "parent": "OFFICE",
+      "color": "#af797c"
+    },
+    {
+      "name": "AK",
+      "value": 36.0,
+      "parent": "RESIDENTIAL",
+      "color": "#c5a8b5"
+    },
+    {
+      "name": "AL",
+      "value": 37.0,
+      "parent": "RESIDENTIAL",
+      "color": "#8197aa"
+    },
+    {
+      "name": "AM",
+      "value": 38.0,
+      "parent": "RESIDENTIAL",
+      "color": "#898ead"
+    },
+    {
+      "name": "AN",
+      "value": 39.0,
+      "parent": "RESIDENTIAL",
+      "color": "#a6c6a6"
+    },
+    {
+      "name": "AO",
+      "value": 110.0,
+      "parent": "RESIDENTIAL",
+      "color": "#c3d8c4"
+    },
+    {
+      "name": "AP",
+      "value": 41.0,
+      "parent": "RESIDENTIAL",
+      "color": "#cfd8bd"
+    },
+    {
+      "name": "AQ",
+      "value": 42.0,
+      "parent": "RESIDENTIAL",
+      "color": "#d1b5ba"
+    },
+    {
+      "name": "AR",
+      "value": 43.0,
+      "parent": "RESIDENTIAL",
+      "color": "#a8768a"
+    },
+    {
+      "name": "AS",
+      "value": 44.0,
+      "parent": "RESIDENTIAL",
+      "color": "#7f98a5"
+    },
+    {
+      "name": "AT",
+      "value": 110.0,
+      "parent": "RESIDENTIAL",
+      "color": "#d1bdba"
+    },
+    {
+      "name": "AU",
+      "value": 46.0,
+      "parent": "RESIDENTIAL",
+      "color": "#cfb0b9"
+    },
+    {
+      "name": "AV",
+      "value": 47.0,
+      "parent": "RESIDENTIAL",
+      "color": "#7d929c"
+    },
+    {
+      "name": "AW",
+      "value": 48.0,
+      "parent": "RESIDENTIAL",
+      "color": "#b09b95"
+    },
+    {
+      "name": "AX",
+      "value": 49.0,
+      "parent": "RESIDENTIAL",
+      "color": "#d5bed1"
+    },
+    {
+      "name": "AY",
+      "value": 110.0,
+      "parent": "RESIDENTIAL",
+      "color": "#82a57f"
+    },
+    {
+      "name": "AZ",
+      "value": 51.0,
+      "parent": "RESIDENTIAL",
+      "color": "#98bf97"
+    },
+    {
+      "name": "BA",
+      "value": 52.0,
+      "parent": "RESIDENTIAL",
+      "color": "#8295a6"
+    },
+    {
+      "name": "BB",
+      "value": 53.0,
+      "parent": "RESIDENTIAL",
+      "color": "#b6cbb2"
     }
   ]
 }
