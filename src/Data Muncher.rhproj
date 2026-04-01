@@ -8,7 +8,7 @@
   "id": "4b4edcbc-afa1-44a9-9783-f1a16d7b12e2",
   "identity": {
     "name": "DataMuncher",
-    "version": "1.8.1",
+    "version": "1.6.2",
     "publisher": {
       "email": "hesham.k.shawqy@gmail.com",
       "name": "Hesham Shawqy"
@@ -51,7 +51,7 @@
     }
   },
   "settings": {
-    "buildPath": "file:///D:/00_HS/00-DEV/Data Muncher/build/18",
+    "buildPath": "file:///D:/00_HS/00-DEV/Data Muncher/build/16",
     "buildTarget": {
       "host": {
         "name": "Rhino3D",
