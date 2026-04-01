@@ -1,6 +1,7 @@
 function drawTreemap(json, W, H, container) {
   const root = buildHierarchy(json.data);
-  d3.treemap().size([W, H]).paddingOuter(4).paddingTop(32).paddingInner(2).round(true)(root);
+  const hasGroups = root.height > 1;
+  d3.treemap().size([W, H]).paddingOuter(4).paddingTop(hasGroups ? 32 : 4).paddingInner(2).round(true)(root);
   const T = 600;
 
   const nodes = container.selectAll(".node").data(root.leaves(), nodeKey);
@@ -47,7 +48,7 @@ function drawTreemap(json, W, H, container) {
     }
   });
 
-  const pLabels = container.selectAll(".plabel").data(root.children || [], nodeKey);
+  const pLabels = container.selectAll(".plabel").data(hasGroups ? (root.children || []) : [], nodeKey);
   pLabels.exit().transition("data").duration(T / 2).style("opacity", 0).remove();
   const pLabelsE = pLabels.enter().append("g").attr("class", "plabel parent-label").style("opacity", 0);
   pLabelsE.append("text").attr("class", "plabel-name")

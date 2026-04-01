@@ -63,7 +63,8 @@ function drawSunburst(json, W, H, container) {
     .style("font-size", d => typeSize("itemValue", Math.max(5, Math.min(8.8, (d.x1 - d.x0) * radius * 0.3))))
     .style("font-weight", typeWeight("itemValue"))
     .text(d => formatValue(d.value, true));
-  lblsM.transition("data").duration(T).ease(d3.easeCubicInOut)
+  lblsM.filter(function(d) { return +this.getAttribute("fill-opacity") || labelVisible(d.target); })
+    .transition("data").duration(T).ease(d3.easeCubicInOut)
     .attrTween("transform", d => () => labelTransform(d.current))
     .attr("fill-opacity", d => +labelVisible(d.target));
 

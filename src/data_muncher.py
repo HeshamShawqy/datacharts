@@ -366,7 +366,8 @@ try:
     _subtitle   = str(g.get("subtitle")   or "Live Data Feed")
     _units      = str(g.get("units")      or "m²")
     _font_scale = float(g.get("font_scale") or 1.0)
-    _enable     = g.get("enable", True)
+    _raw_enable = g.get("enable")
+    _enable = bool(_raw_enable) if _raw_enable is not None else True
     _x          = int(g.get("position_x") or 20)
     _y          = int(g.get("position_y") or 60)
     _w          = int(g.get("chart_size") or 500)
